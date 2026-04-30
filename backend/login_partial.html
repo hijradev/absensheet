@@ -1,0 +1,88 @@
+<div id="view-login" class="auth-container">
+    <div class="card premium-card login-split-card">
+        <!-- Language Selector -->
+        <div class="language-selector position-absolute top-0 end-0 p-2">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="languageSelector" data-bs-toggle="dropdown" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 3a9 9 0 0 0 0 18" /><path d="M12 3a9 9 0 0 1 0 18" /></svg>
+                    <span id="current-language-text">EN</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageSelector">
+                    <li><a class="dropdown-item" href="#" data-lang="en" data-i18n="languages.english">English</a></li>
+                    <li><a class="dropdown-item" href="#" data-lang="id" data-i18n="languages.bahasaIndonesia">Bahasa Indonesia</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tabs (visible on mobile) -->
+        <div class="login-tabs d-md-none">
+            <button class="login-tab-btn active" data-tab="form" id="tab-btn-form">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
+                Login
+            </button>
+            <button class="login-tab-btn" data-tab="scanner" id="tab-btn-scanner">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7v-1a2 2 0 0 1 2 -2h2" /><path d="M4 17v1a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v1" /><path d="M16 20h2a2 2 0 0 0 2 -2v-1" /><path d="M5 12l14 0" /></svg>
+                Scan QR
+            </button>
+        </div>
+
+        <div class="login-split-body">
+
+            <!-- Left: Login Form -->
+            <div class="login-panel login-panel-form" id="login-panel-form">
+                <div class="text-center mb-4">
+                    <div class="login-brand-icon mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
+                    </div>
+                    <h2 class="h3 fw-bold mb-1" data-i18n="login.loginTitle">Attendance System</h2>
+                    <p class="text-muted small" data-i18n="login.loginTitle">Sign in to your account</p>
+                </div>
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label class="form-label" for="login-employee-id" data-i18n="login.employeeId">Employee ID</label>
+                        <input type="text" id="login-employee-id" class="form-control" required placeholder="E001" autocomplete="username" data-i18n-placeholder="login.employeeId">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="login-password" data-i18n="login.password">Password</label>
+                        <input type="password" id="login-password" class="form-control" required placeholder="••••••" autocomplete="current-password" data-i18n-placeholder="login.password">
+                    </div>
+                    <button type="submit" id="login-submit-btn" class="btn btn-primary w-100">
+                        <span id="login-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;"></span>
+                        <span id="login-btn-text" data-i18n="login.signIn">Sign In</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Divider (desktop only) -->
+            <div class="login-divider d-none d-md-flex">
+                <div class="login-divider-line"></div>
+                <span class="login-divider-text">or</span>
+                <div class="login-divider-line"></div>
+            </div>
+
+            <!-- Right: QR Scanner -->
+            <div class="login-panel login-panel-scanner" id="login-panel-scanner">
+                <div class="text-center mb-3">
+                    <div class="login-brand-icon mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7v-1a2 2 0 0 1 2 -2h2" /><path d="M4 17v1a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v1" /><path d="M16 20h2a2 2 0 0 0 2 -2v-1" /><path d="M5 12l14 0" /></svg>
+                    </div>
+                    <h2 class="h3 fw-bold mb-1" data-i18n="login.quickAttendance">Quick Attendance</h2>
+                    <p class="text-muted small" data-i18n="login.scanQrToCheck">Scan your QR code to check in or out</p>
+                </div>
+
+                <!-- Scanner result feedback -->
+                <div id="login-scanner-result" style="display: none;" class="mb-3"></div>
+
+                <!-- Scanner container -->
+                <div id="login-reader-wrapper">
+                    <div id="login-reader"></div>
+                </div>
+
+                <p class="text-center text-muted small mt-3 mb-0" data-i18n="login.pointCameraAtQr">
+                    Point your camera at your employee QR code
+                </p>
+            </div>
+
+        </div>
+    </div>
+</div>

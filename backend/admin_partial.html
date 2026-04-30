@@ -1,0 +1,937 @@
+<div id="view-admin">
+    <header class="navbar navbar-expand-md d-print-none glass-header">
+        <div class="container-xl">
+            <h1 class="navbar-brand navbar-brand-autodark" data-i18n="adminPanel.adminPanel">Admin Panel</h1>
+            <div class="navbar-nav flex-row order-md-last">
+                <div class="nav-item dropdown">
+                    <a class="nav-link" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 3a9 9 0 0 0 0 18" /><path d="M12 3a9 9 0 0 1 0 18" /></svg>
+                        <span id="current-language-text">EN</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                        <li><a class="dropdown-item" href="#" data-lang="en" data-i18n="languages.english">English</a></li>
+                        <li><a class="dropdown-item" href="#" data-lang="id" data-i18n="languages.bahasaIndonesia">Bahasa Indonesia</a></li>
+                    </ul>
+                </div>
+                <div class="nav-item">
+                    <button class="btn btn-outline-danger logout-btn" data-i18n="common.logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-item" data-view="dashboard" id="nav-dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
+                <span data-i18n="dashboard">Dashboard</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="users" id="nav-users">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
+                <span data-i18n="adminPanel.userManagement">User Management</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="shifts" id="nav-shifts">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 2" /><path d="M12 7v5" /></svg>
+                <span data-i18n="adminPanel.shiftManagement">Shift Management</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="positions" id="nav-positions">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l8 0" /><path d="M8 13l6 0" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /></svg>
+                <span data-i18n="adminPanel.positionManagement">Group Management</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="attendance" id="nav-attendance">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /><path d="M11 15l1 0" /><path d="M12 15l0 3" /></svg>
+                <span data-i18n="adminPanel.dailyAttendanceView">Daily Attendance</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="manual-attendance" id="nav-manual-attendance">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
+                <span data-i18n="adminPanel.manualAttendance">Manual Attendance</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="logs" id="nav-logs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4" /></svg>
+                <span data-i18n="adminPanel.activityLogs">Activity Logs</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="reports" id="nav-reports">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3v18h18" /><path d="M20 18v3" /><path d="M16 16v5" /><path d="M12 13v8" /><path d="M8 16v5" /><path d="M3 11c6 0 5 -5 9 -5s3 5 9 5" /></svg>
+                <span data-i18n="adminPanel.reports">Reports</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="qrcodes" id="nav-qrcodes">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 7l0 .01" /><path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M17 7l0 .01" /><path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 17l0 .01" /><path d="M14 14l1 0" /><path d="M14 17l0 3" /><path d="M17 14l0 3" /><path d="M20 17l0 3" /><path d="M17 20l3 0" /></svg>
+                <span data-i18n="adminPanel.qrCodes">QR Codes</span>
+            </div>
+            <div class="admin-sidebar-item" data-view="settings" id="nav-settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>
+                <span data-i18n="settings">Settings</span>
+            </div>
+        </aside>
+
+        <main class="admin-content">
+            <!-- Dashboard View -->
+            <div id="admin-view-dashboard" style="display: none;">
+                <div class="row row-deck row-cards mb-4">
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card">
+                            <div class="card-body">
+                                <div class="subheader" data-i18n="dashboardStats.onTime">On Time (This Month)</div>
+                                <div class="h1 mb-3" id="stats-ontime">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card">
+                            <div class="card-body">
+                                <div class="subheader" data-i18n="dashboardStats.late">Late (This Month)</div>
+                                <div class="h1 mb-3" id="stats-late">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card">
+                            <div class="card-body">
+                                <div class="subheader" data-i18n="dashboardStats.absent">Absent (This Month)</div>
+                                <div class="h1 mb-3" id="stats-absent">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card">
+                            <div class="card-body">
+                                <div class="subheader" data-i18n="dashboardStats.notPresent">Not Present (This Month)</div>
+                                <div class="h1 mb-3" id="stats-notpresent">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row row-cards mb-4">
+                    <div class="col-lg-5">
+                        <div class="card premium-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="dashboardStats.attendanceStatusDistribution">Attendance Status Distribution</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="chart-pie-attendance" style="min-height: 350px;">
+                                    <div class="d-flex align-items-center justify-content-center" style="height: 350px;" id="chart-pie-loading">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card premium-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title" data-i18n="dashboardStats.monthlyAttendanceRateTrend">Monthly Attendance Rate Trend</h3>
+                                    <p class="card-subtitle text-muted small mb-0" data-i18n="dashboardStats.aggregateOnTime">Aggregate on-time attendance % across all employees, by month</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="chart-bar-attendance" style="min-height: 350px;">
+                                    <div class="d-flex align-items-center justify-content-center" style="height: 350px;" id="chart-bar-loading">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card premium-card">
+                    <div class="card-header">
+                        <h3 class="card-title" data-i18n="dashboardStats.top10BestPerformers">Top 10 Best Performers — Timeliness (Weekly Recap)</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">#</th>
+                                    <th data-i18n="dashboardStats.employee">Employee</th>
+                                    <th class="text-center" data-i18n="dashboardStats.onTime">On Time</th>
+                                    <th class="text-center" data-i18n="dashboardStats.late">Late</th>
+                                    <th class="text-center" data-i18n="dashboardStats.absent">Absent</th>
+                                    <th class="text-center" data-i18n="dashboardStats.timelinessRate">Timeliness Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-recap-table">
+                                <!-- To be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management View -->
+            <div id="admin-view-users" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h2" data-i18n="userManagement.userManagement">User Management</h2>
+                    <button class="btn btn-primary btn-add-user" data-i18n="userManagement.addNewUser">Add New User</button>
+                </div>
+                
+                <!-- Filter and Search Controls -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" data-i18n="search">Search</label>
+                                <input type="text" id="user-search-input" class="form-control" placeholder="Search by ID, name, or role..." data-i18n-placeholder="searchEmployee">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" data-i18n="role">Role</label>
+                                <select id="user-role-filter" class="form-select">
+                                    <option value="all" data-i18n="all">All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" data-i18n="rowsPerPage">Rows per page</label>
+                                <select id="user-items-per-page" class="form-select">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button id="user-export-btn" class="btn btn-outline-primary w-100" title="Export to CSV">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M12 11v6" /><path d="M9.5 13.5l2.5 2.5l2.5 -2.5" /></svg>
+                                        <span data-i18n="csv">CSV</span>
+                                    </button>
+                                    <button id="user-print-btn" class="btn btn-outline-secondary w-100" title="Print">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><rect x="7" y="13" width="10" height="8" rx="2" /></svg>
+                                        <span data-i18n="printLogs">Print</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div id="user-stats" class="d-flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="userManagement.photo">Photo</th>
+                                    <th data-i18n="userManagement.id">ID</th>
+                                    <th data-i18n="userManagement.name">Name</th>
+                                    <th data-i18n="userManagement.role">Role</th>
+                                    <th data-i18n="userManagement.actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-table">
+                                <!-- To be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <div id="user-pagination"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shift Management View -->
+            <div id="admin-view-shifts" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h2" data-i18n="shiftManagement.shiftManagement">Shift Management</h2>
+                    <button class="btn btn-primary btn-add-shift" data-i18n="shiftManagement.addNewShift">Add New Shift</button>
+                </div>
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="shiftManagement.id">ID</th>
+                                    <th data-i18n="shiftManagement.startTime">Start Time</th>
+                                    <th data-i18n="shiftManagement.endTime">End Time</th>
+                                    <th data-i18n="shiftManagement.actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-shifts-table">
+                                <!-- To be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Management View -->
+            <div id="admin-view-positions" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h2" data-i18n="positionManagement.positionManagement">Group Management</h2>
+                    <button class="btn btn-primary btn-add-position" data-i18n="positionManagement.addNewPosition">Add New Group</button>
+                </div>
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="positionManagement.id">ID</th>
+                                    <th data-i18n="positionManagement.position">Group</th>
+                                    <th data-i18n="positionManagement.actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-positions-table">
+                                <!-- To be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Attendance View -->
+            <div id="admin-view-attendance" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h2 class="h2 mb-0" data-i18n="dailyAttendance.dailyAttendance">Daily Attendance</h2>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="form-label mb-0 text-muted small fw-semibold" for="attendance-date-start" data-i18n="dailyAttendance.from">From:</label>
+                            <input type="date" id="attendance-date-start" class="form-control" style="width: auto;">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="form-label mb-0 text-muted small fw-semibold" for="attendance-date-end" data-i18n="dailyAttendance.to">To:</label>
+                            <input type="date" id="attendance-date-end" class="form-control" style="width: auto;">
+                        </div>
+                        <button class="btn btn-primary" id="btn-load-attendance">
+                            <span id="attendance-load-spinner" class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span>
+                            <svg id="attendance-load-icon" xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+                            <span data-i18n="dailyAttendance.load">Load</span>
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="btn-export-attendance" title="Export CSV">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 15l2 2l4 -4" /></svg>
+                                <span data-i18n="dailyAttendance.exportCsv" class="d-none d-md-inline">CSV</span>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="btn-export-attendance-excel" title="Export Excel">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M10 12l2 2l2 -2" /><path d="M12 18l0 -4" /></svg>
+                                <span data-i18n="dailyAttendance.exportExcel" class="d-none d-md-inline">Excel</span>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="btn-print-attendance" title="Print">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><rect x="7" y="13" width="10" height="8" rx="2" /></svg>
+                                <span data-i18n="dailyAttendance.print" class="d-none d-md-inline">Print</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row row-deck row-cards mb-4" id="attendance-summary-cards">
+                    <div class="col-6 col-lg-2">
+                        <div class="card premium-card text-center">
+                            <div class="card-body py-3">
+                                <div class="subheader text-muted" data-i18n="dailyAttendance.total">Total</div>
+                                <div class="h2 mb-0" id="att-stat-total">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="card premium-card text-center border-success border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-success" data-i18n="dailyAttendance.onTime">On Time</div>
+                                <div class="h2 mb-0 text-success" id="att-stat-ontime">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="card premium-card text-center border-warning border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-warning" data-i18n="dailyAttendance.late">Late</div>
+                                <div class="h2 mb-0 text-warning" id="att-stat-late">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="card premium-card text-center border-danger border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-danger" data-i18n="dailyAttendance.absent">Absent</div>
+                                <div class="h2 mb-0 text-danger" id="att-stat-absent">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="card premium-card text-center border-secondary border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-muted" data-i18n="dailyAttendance.notPresent">Not Present</div>
+                                <div class="h2 mb-0 text-muted" id="att-stat-notpresent">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card premium-card mb-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.filterStatus">Filter:</label>
+                                <select id="att-filter-status" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="" data-i18n="dailyAttendance.allStatus">All Status</option>
+                                    <option value="Tepat Waktu" data-i18n="dailyAttendance.onTime">On Time</option>
+                                    <option value="Terlambat" data-i18n="dailyAttendance.late">Late</option>
+                                    <option value="Tidak Hadir" data-i18n="dailyAttendance.notPresent">Not Present</option>
+                                    <option value="Bolos" data-i18n="dailyAttendance.leftEarly">Left Early</option>
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 ms-auto">
+                                <input type="search" id="att-search" class="form-control form-control-sm" placeholder="Search employee…" style="width: 200px;" data-i18n-placeholder="dailyAttendance.searchEmployee">
+                            </div>
+                            <small class="text-muted" id="att-result-count"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Table -->
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="text-muted" style="width: 40px;">#</th>
+                                    <th id="att-col-date" style="display:none;" data-i18n="dailyAttendance.date">Date</th>
+                                    <th data-i18n="dailyAttendance.employee">Employee</th>
+                                    <th data-i18n="dailyAttendance.position">Group</th>
+                                    <th data-i18n="dailyAttendance.shift">Shift</th>
+                                    <th data-i18n="dailyAttendance.checkInTime">Check In</th>
+                                    <th data-i18n="dailyAttendance.inStatus">In Status</th>
+                                    <th data-i18n="dailyAttendance.checkOutTime">Check Out</th>
+                                    <th data-i18n="dailyAttendance.outStatus">Out Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-attendance-table">
+                                <tr><td colspan="8" class="text-center text-muted py-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /></svg>
+                                    <span data-i18n="dailyAttendance.selectDateRange">Select a date range and click Load to view attendance</span>
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Footer -->
+                    <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small" data-i18n="common.rowsPerPage">Rows per page:</label>
+                            <select id="att-page-size" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <nav aria-label="Attendance pagination">
+                            <div id="att-pagination"></div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Attendance View -->
+            <div id="admin-view-manual-attendance" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h2 class="h2 mb-1" data-i18n="manualAttendance.manualAttendance">Manual Attendance</h2>
+                        <p class="text-muted mb-0 small" data-i18n="manualAttendance.addOrCorrectAttendance">Add or correct attendance records for employees with permissible absences (sick leave, permission, annual leave, etc.)</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-manual-att">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                        <span data-i18n="manualAttendance.addRecord">Add Record</span>
+                    </button>
+                </div>
+
+                <!-- Legend / Info Banner -->
+                <div class="alert alert-info alert-dismissible mb-4" role="alert">
+                    <div class="d-flex gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon flex-shrink-0 mt-1" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9h.01" /><path d="M11 12h1v4h1" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg>
+                        <div>
+                            <span data-i18n="manualAttendance.useThisPageToManuallyRecord">Use this page to manually record attendance for employees who are absent due to</span> <strong data-i18n="manualAttendance.izinPermission">Izin (Permission)</strong>, <strong data-i18n="manualAttendance.sakitSickLeave">Sakit (Sick Leave)</strong>, <strong data-i18n="manualAttendance.cutiAnnualLeave">Cuti (Annual Leave)</strong>, <span data-i18n="manualAttendance.orToCorrectExistingRecords">or to correct existing records. Editing an existing record for the same employee + date will overwrite it.</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card premium-card mb-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.from">From:</label>
+                                <input type="date" id="manual-att-filter-start" class="form-control form-control-sm" style="width: auto;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.to">To:</label>
+                                <input type="date" id="manual-att-filter-end" class="form-control form-control-sm" style="width: auto;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="manualAttendance.employeeFilter">Employee:</label>
+                                <select id="manual-att-filter-employee" class="form-select form-select-sm" style="width: auto; min-width: 180px;">
+                                    <option value="" data-i18n="manualAttendance.allEmployees">All Employees</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" id="btn-load-manual-att">
+                                <span id="manual-att-load-spinner" class="spinner-border spinner-border-sm me-1" style="display: none;"></span>
+                                <svg id="manual-att-load-icon" xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+                                <span data-i18n="dailyAttendance.load">Load</span>
+                            </button>
+                            <div class="ms-auto d-flex align-items-center gap-2">
+                                <input type="search" id="manual-att-search" class="form-control form-control-sm" placeholder="Search employee…" style="width: 200px;" data-i18n-placeholder="dailyAttendance.searchEmployee">
+                                <small class="text-muted" id="manual-att-result-count"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Records Table -->
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="text-muted" style="width: 40px;">#</th>
+                                    <th>Date</th>
+                                    <th>Employee</th>
+                                    <th>Group</th>
+                                    <th>Check-In</th>
+                                    <th>In Status</th>
+                                    <th>Check-Out</th>
+                                    <th>Out Status</th>
+                                    <th style="width: 90px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manual-att-table">
+                                <tr><td colspan="9" class="text-center text-muted py-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
+                                    Set a date range and click Load to view records.
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small">Rows per page:</label>
+                            <select id="manual-att-page-size" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <nav aria-label="Manual attendance pagination">
+                            <div id="manual-att-pagination"></div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs View -->
+            <div id="admin-view-logs" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h2 class="h2 mb-1" data-i18n="activityLogs.auditTrail">Activity Logs</h2>
+                        <p class="text-muted mb-0 small" data-i18n="activityLogs.auditTrail">Audit trail of administrative actions.</p>
+                    </div>
+                    <button class="btn btn-outline-secondary" id="btn-print-logs">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z" /></svg>
+                        <span data-i18n="activityLogs.printLogs">Print Logs</span>
+                    </button>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card premium-card mb-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <input type="search" id="logs-search" class="form-control form-control-sm" placeholder="Search logs…" style="width: 240px;" data-i18n-placeholder="activityLogs.searchLogs">
+                            <small class="text-muted ms-auto" id="logs-result-count"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card premium-card">
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="activityLogs.timestamp">Timestamp</th>
+                                    <th data-i18n="activityLogs.userId">User ID</th>
+                                    <th data-i18n="activityLogs.action">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-logs-table">
+                                <!-- To be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Footer -->
+                    <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small" data-i18n="common.rowsPerPage">Rows per page:</label>
+                            <select id="logs-page-size" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <nav aria-label="Logs pagination">
+                            <div id="logs-pagination"></div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports View -->
+            <div id="admin-view-reports" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h2 class="h2 mb-0" data-i18n="reports.attendanceReports">Attendance Reports</h2>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <select id="report-period-filter" class="form-select" style="width: auto;">
+                            <option value="weekly" data-i18n="reports.weekly">Weekly</option>
+                            <option value="monthly" selected data-i18n="reports.monthly">Monthly</option>
+                            <option value="yearly" data-i18n="reports.yearly">Yearly</option>
+                            <option value="custom" data-i18n="reports.customRange">Custom Range</option>
+                        </select>
+                        <div id="report-custom-range" class="d-flex align-items-center gap-1" style="display: none !important;">
+                            <label class="form-label mb-0 text-muted small fw-semibold" for="report-date-start" data-i18n="dailyAttendance.from">From:</label>
+                            <input type="date" id="report-date-start" class="form-control form-control-sm" style="width: auto;">
+                            <label class="form-label mb-0 text-muted small fw-semibold" for="report-date-end" data-i18n="dailyAttendance.to">To:</label>
+                            <input type="date" id="report-date-end" class="form-control form-control-sm" style="width: auto;">
+                        </div>
+                        <button class="btn btn-outline-primary" id="btn-load-report" title="Refresh">
+                            <span id="report-load-spinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                            <svg id="report-load-icon" xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-success" id="btn-export-csv">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /></svg>
+                                <span data-i18n="reports.csv">CSV</span>
+                            </button>
+                            <button class="btn btn-outline-success" id="btn-export-excel">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /></svg>
+                                <span data-i18n="reports.excel">Excel</span>
+                            </button>
+                            <button class="btn btn-outline-danger" id="btn-export-pdf">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M5 18h1.5a1.5 1.5 0 0 0 0 -3h-1.5v6" /><path d="M17 18h2" /><path d="M20 15h-3v6" /><path d="M11 15v6h1a2 2 0 0 0 2 -2v-2a2 2 0 0 0 -2 -2h-1z" /></svg>
+                                <span data-i18n="reports.pdf">PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row row-deck row-cards mb-4">
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card text-center border-success border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-success" data-i18n="reports.totalOnTime">Total On Time</div>
+                                <div class="h2 mb-0 text-success" id="report-stat-ontime">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card text-center border-warning border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-warning" data-i18n="reports.totalLate">Total Late</div>
+                                <div class="h2 mb-0 text-warning" id="report-stat-late">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card premium-card text-center border-danger border-opacity-25">
+                            <div class="card-body py-3">
+                                <div class="subheader text-danger" data-i18n="reports.totalAbsent">Total Absent</div>
+                                <div class="h2 mb-0 text-danger" id="report-stat-absent">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Table -->
+                <div class="card premium-card">
+                    <div class="card-header">
+                        <h3 class="card-title" data-i18n="reports.totalRecap">Total Recap - <span id="report-period-label">Monthly</span></h3>
+                        <div class="ms-auto">
+                            <input type="search" id="report-search" class="form-control form-control-sm" placeholder="Search employee…" style="width: 200px;" data-i18n-placeholder="dailyAttendance.searchEmployee">
+                        </div>
+                    </div>
+                    <div class="table-responsive" id="report-table-container">
+                        <table class="table card-table table-vcenter table-hover" id="report-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-muted" style="width: 40px;">#</th>
+                                    <th data-i18n="reports.employeeIdCol">Employee ID</th>
+                                    <th data-i18n="reports.employeeNameCol">Employee Name</th>
+                                    <th data-i18n="reports.position">Group</th>
+                                    <th class="text-center" data-i18n="reports.onTime">On Time</th>
+                                    <th class="text-center" data-i18n="reports.late">Late</th>
+                                    <th class="text-center" data-i18n="reports.absent">Absent</th>
+                                    <th class="text-center" data-i18n="reports.totalDays">Total Days</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body">
+                                <tr><td colspan="8" class="text-center text-muted py-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3v18h18" /><path d="M20 18v3" /><path d="M16 16v5" /><path d="M12 13v8" /><path d="M8 16v5" /><path d="M3 11c6 0 5 -5 9 -5s3 5 9 5" /></svg>
+                                    <span data-i18n="reports.loadingReportData">Loading report data…</span>
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Footer -->
+                    <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-muted small" data-i18n="common.rowsPerPage">Rows per page:</label>
+                            <select id="report-page-size" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <small class="text-muted" id="report-result-count"></small>
+                        <nav aria-label="Report pagination">
+                            <div id="report-pagination"></div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <!-- QR Codes View -->
+            <div id="admin-view-qrcodes" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h2 class="h2 mb-1" data-i18n="qrCodes.employeeQrCodes">Employee QR Codes</h2>
+                        <p class="text-muted mb-0 small" data-i18n="qrCodes.generateAndDownloadQrCodes">Generate and download QR codes for employee attendance. Each QR code encodes the <span data-i18n="qrCodes.employeeIdQr">employee ID</span>.</p>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-secondary" id="btn-qr-print-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z" /></svg>
+                            <span data-i18n="qrCodes.printAll">Print All</span>
+                        </button>
+                        <button class="btn btn-primary" id="btn-qr-generate-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 7l0 .01" /><path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M17 7l0 .01" /><path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 17l0 .01" /><path d="M14 14l1 0" /><path d="M14 17l0 3" /><path d="M17 14l0 3" /><path d="M20 17l0 3" /><path d="M17 20l3 0" /></svg>
+                            <span data-i18n="qrCodes.generateAllQrCodes">Generate All QR Codes</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Banner -->
+                <div class="alert alert-info mb-4" role="alert">
+                    <div class="d-flex gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon flex-shrink-0 mt-1" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9h.01" /><path d="M11 12h1v4h1" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg>
+                        <div>
+                            <span data-i18n="qrCodes.eachQrCodeEncodes">Each QR code encodes the</span> <strong data-i18n="qrCodes.employeeIdQr">Employee ID</strong>. <span data-i18n="qrCodes.employeeScanQr">Employees scan their personal QR code at the attendance terminal to check in or out automatically. QR codes are saved to the database for record-keeping.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search / Filter Bar -->
+                <div class="card premium-card mb-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <input type="search" id="qr-search" class="form-control form-control-sm" placeholder="Search by name or ID…" style="width: 240px;" data-i18n-placeholder="qrCodes.searchByNameOrId">
+                            <small class="text-muted ms-auto" id="qr-result-count"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Cards Grid -->
+                <div id="qr-cards-container">
+                    <!-- Loading state -->
+                    <div id="qr-loading" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden" data-i18n="common.loading">Loading…</span>
+                        </div>
+                        <p class="text-muted" data-i18n="qrCodes.generatingQrCodes">Generating QR codes…</p>
+                    </div>
+                    <!-- Empty state -->
+                    <div id="qr-empty" class="text-center py-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-3 text-muted" width="48" height="48" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 7l0 .01" /><path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M17 7l0 .01" /><path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 17l0 .01" /></svg>
+                        <p class="text-muted fw-semibold mb-1" data-i18n="qrCodes.noQrCodesGeneratedYet">No QR codes generated yet</p>
+                        <p class="text-muted small mb-3" data-i18n="qrCodes.clickGenerateAllToCreate">Click "Generate All QR Codes" to create QR codes for all employees.</p>
+                        <button class="btn btn-primary" id="btn-qr-generate-all-empty">
+                            <span data-i18n="qrCodes.generateAllQrCodes">Generate All QR Codes</span>
+                        </button>
+                    </div>
+                    <!-- Grid populated by JS -->
+                    <div id="qr-grid" class="row row-cards" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="admin-view-settings" style="display: none;">
+                <div id="admin-content">
+                    <!-- Settings content will be rendered by the Settings component -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Manual Attendance Modal -->
+    <div id="manual-att-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manual-att-modal-title">Add Manual Attendance</h5>
+                    <button type="button" class="btn-close js-close-manual-att-modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Employee <span class="text-danger">*</span></label>
+                            <select id="manual-att-employee" class="form-select">
+                                <option value="">— Select Employee —</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" id="manual-att-date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Reason / Note <span class="text-danger">*</span></label>
+                            <select id="manual-att-reason" class="form-select">
+                                <option value="Izin">Izin (Permission)</option>
+                                <option value="Sakit">Sakit (Sick Leave)</option>
+                                <option value="Cuti">Cuti (Annual Leave)</option>
+                                <option value="Tepat Waktu">Present – On Time (correction)</option>
+                                <option value="Terlambat">Present – Late (correction)</option>
+                                <option value="Tidak Hadir">Tidak Hadir (Absent – no reason)</option>
+                            </select>
+                            <div class="form-text text-muted">This sets the Check-In status for the record.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Check-In Time</label>
+                            <input type="time" id="manual-att-checkin-time" class="form-control" placeholder="HH:MM">
+                            <div class="form-text text-muted">Leave blank for permission/sick/leave records.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Check-Out Time</label>
+                            <input type="time" id="manual-att-checkout-time" class="form-control" placeholder="HH:MM">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Check-Out Status</label>
+                            <select id="manual-att-checkout-status" class="form-select">
+                                <option value="">— None —</option>
+                                <option value="Tepat Waktu">On Time</option>
+                                <option value="Bolos">Left Early (Bolos)</option>
+                                <option value="Izin">Izin</option>
+                                <option value="Sakit">Sakit</option>
+                                <option value="Cuti">Cuti</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div id="manual-att-modal-alert" class="alert" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary js-close-manual-att-modal">Cancel</button>
+                    <button type="button" id="btn-save-manual-att" class="btn btn-primary ms-auto">
+                        <span id="manual-att-save-spinner" class="spinner-border spinner-border-sm me-2" style="display: none;"></span>
+                        <span id="manual-att-save-text">Save Record</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title">Edit</h5>
+                    <button type="button" class="btn-close btn-close-modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- User Form -->
+                    <div id="form-user" style="display: none;">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="user-photo-section">
+                                    <img id="user-photo-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='38' r='22' fill='%2394a3b8'/%3E%3Cellipse cx='50' cy='90' rx='36' ry='26' fill='%2394a3b8'/%3E%3C/svg%3E" class="user-photo-preview">
+                                    <label class="form-label text-muted small mb-1">Upload Photo</label>
+                                    <input type="file" id="user-photo-input" class="form-control form-control-sm" accept="image/*">
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Employee ID</label>
+                                    <input type="text" id="user-id" class="form-control">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Name</label>
+                                    <input type="text" id="user-name" class="form-control">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" id="user-password" class="form-control">
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Role</label>
+                                        <select id="user-role" class="form-select">
+                                            <option value="Employee">Employee</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Shift</label>
+                                        <select id="user-shift" class="form-select">
+                                            <!-- To be populated by JS -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Group</label>
+                                    <select id="user-position" class="form-select">
+                                        <!-- To be populated by JS -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shift Form -->
+                    <div id="form-shift" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Shift ID</label>
+                            <input type="text" id="shift-id" class="form-control">
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" id="shift-start" class="form-control">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">End Time</label>
+                                <input type="time" id="shift-end" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group Form -->
+                    <div id="form-position" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Group ID</label>
+                            <input type="text" id="position-id" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Group Name</label>
+                            <input type="text" id="position-name" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary btn-close-modal">Cancel</button>
+                    <button type="button" id="btn-save-form" class="btn btn-primary ms-auto">
+                        <span id="save-spinner" class="spinner-border spinner-border-sm me-2" style="display: none;"></span>
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

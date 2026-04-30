@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Employee Attendance System — check in, check out, and manage attendance records.">
+    <title>Employee Attendance</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.0/dist/apexcharts.min.js"></script>
+</head>
+<body>
+
+    <!-- Page Loading Overlay — content managed by renderDataError() in app.js -->
+    <div id="page-loading-overlay" class="page-loading-overlay" style="display: none;"></div>
+
+    <!-- Alerts -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+        <div id="error-alert-container"></div>
+        <div id="success-alert-container"></div>
+    </div>
+
+    <!-- Dynamic Content Container -->
+    <main id="app-content"></main>
+
+    <script type="module" src="/src/frontend/app.js"></script>
+
+    <!-- Global Confirm Dialog -->
+    <div id="confirm-dialog-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="modal-title" id="confirm-dialog-title" data-i18n="confirmDialog.confirmAction">Confirm Action</div>
+                    <div id="confirm-dialog-message" class="text-muted mt-2" data-i18n="confirmDialog.areYouSure">Are you sure?</div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="confirm-dialog-cancel" class="btn w-100" data-i18n="common.cancel">Cancel</button>
+                            </div>
+                            <div class="col">
+                                <button id="confirm-dialog-ok" class="btn btn-danger w-100">
+                                    <span id="confirm-dialog-spinner" class="spinner-border spinner-border-sm me-1" role="status" style="display: none;"></span>
+                                    <span class="confirm-btn-text" id="confirm-dialog-ok-text" data-i18n="common.delete">Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

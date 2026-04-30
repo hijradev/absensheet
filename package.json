@@ -1,0 +1,20 @@
+{
+  "name": "gas-absensi-spa",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && mkdir -p dist && cp backend/* dist/ && cp appsscript.json dist/",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "vite-plugin-singlefile": "^2.0.1"
+  },
+  "dependencies": {
+    "@tabler/core": "1.0.0-beta20",
+    "html5-qrcode": "^2.3.8",
+    "qrcode": "^1.5.3"
+  }
+}

@@ -1,0 +1,85 @@
+<div id="view-employee">
+    <header class="navbar navbar-expand-md d-print-none glass-header">
+        <div class="container-xl">
+            <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+                <span data-i18n="employeeDashboard.dashboard">Dashboard</span>
+            </h1>
+            <div class="navbar-nav flex-row order-md-last">
+                <div class="nav-item dropdown">
+                    <a class="nav-link" href="#" id="employeeLanguageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 3a9 9 0 0 0 0 18" /><path d="M12 3a9 9 0 0 1 0 18" /></svg>
+                        <span id="current-language-text">EN</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="employeeLanguageDropdown">
+                        <li><a class="dropdown-item" href="#" data-lang="en" data-i18n="languages.english">English</a></li>
+                        <li><a class="dropdown-item" href="#" data-lang="id" data-i18n="languages.bahasaIndonesia">Bahasa Indonesia</a></li>
+                    </ul>
+                </div>
+                <div class="nav-item">
+                    <button class="btn btn-outline-danger logout-btn" data-i18n="common.logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="page-wrapper">
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="row row-cards">
+                    <div class="col-md-6">
+                        <div class="card premium-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="employeeDashboard.dailyAttendance">Daily Attendance</h3>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <p class="text-muted">Welcome, <strong id="employee-name"></strong></p>
+                                </div>
+                                <div class="d-flex justify-content-center gap-3 mb-4">
+                                    <button id="btn-checkin" class="btn btn-success btn-lg">
+                                        <span id="checkin-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;"></span>
+                                        <svg id="checkin-icon" xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-login" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M20 12h-13l3 -3m0 6l-3 -3" /></svg>
+                                        <span id="checkin-btn-text" data-i18n="employeeDashboard.checkIn">Check In</span>
+                                    </button>
+                                    <button id="btn-checkout" class="btn btn-warning btn-lg text-white">
+                                        <span id="checkout-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;"></span>
+                                        <svg id="checkout-icon" xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-logout" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 12h12l-3 -3m0 6l3 -3" /></svg>
+                                        <span id="checkout-btn-text" data-i18n="employeeDashboard.checkOut">Check Out</span>
+                                    </button>
+                                </div>
+                                <hr>
+                                <p class="text-muted mb-2" data-i18n="employeeDashboard.orScanQr">Or scan QR Code</p>
+                                <button id="btn-open-scanner" class="btn btn-outline-primary" data-i18n="employeeDashboard.openScanner">Open Scanner</button>
+                                <button id="btn-close-scanner" class="btn btn-outline-danger" style="display: none;" data-i18n="employeeDashboard.closeScanner">Close Scanner</button>
+                                <div id="reader" class="mt-3" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card premium-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="employeeDashboard.recentHistory">Recent History</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table card-table table-vcenter">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="employeeDashboard.date">Date</th>
+                                            <th data-i18n="employeeDashboard.in">In</th>
+                                            <th data-i18n="employeeDashboard.status">Status</th>
+                                            <th data-i18n="employeeDashboard.out">Out</th>
+                                            <th data-i18n="employeeDashboard.status">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employee-history-table">
+                                        <!-- To be populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
