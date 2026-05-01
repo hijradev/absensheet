@@ -260,6 +260,7 @@ export class Settings {
 
             if (res && res.status === 'success') {
                 this.currentSettings.organizationName = organizationName;
+                this.setState({ organizationName: organizationName });
                 this.showSuccess(t('organizationSettingsSaved'));
             } else {
                 this.showError(res?.message || t('failedToSaveSettings'));

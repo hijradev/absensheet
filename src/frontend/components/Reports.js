@@ -235,7 +235,7 @@ export class Reports {
             fileSuffix = period;
         }
 
-        let csv = `${t('attendanceReports')} - ${rangeLabel}\n\n`;
+        let csv = `${this.state.organizationName || t('attendanceReports')} - ${rangeLabel}\n\n`;
         csv += `${t('employeeIdCol')},${t('employeeNameCol')},${t('position')},${t('onTime')},${t('late')},${t('absent')},${t('totalDays')}\n`;
 
         this.filteredData.forEach(row => {
@@ -262,7 +262,7 @@ export class Reports {
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
             <head><meta charset="UTF-8"><style>table { border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #f2f2f2; font-weight: bold; }</style></head>
             <body>
-                <h2>${t('attendanceReports')} - ${rangeLabel}</h2>
+                <h2>${this.state.organizationName || t('attendanceReports')} - ${rangeLabel}</h2>
                 <table>
                     <thead>
                         <tr>
@@ -351,7 +351,7 @@ export class Reports {
     </style>
 </head>
 <body>
-    <h2>${t('attendanceReports')}</h2>
+    <h2>${this.state.organizationName || t('attendanceReports')}</h2>
     <p class="subtitle">Period: ${rangeLabel}</p>
     <table>
         <thead>
