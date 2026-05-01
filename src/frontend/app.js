@@ -103,6 +103,9 @@ const state = {
     qrGenerating: false,
     qrSearch: '',
 
+    // Settings
+    organizationName: '',
+
     // Login-page QR scanner
     loginScannerActive: false,
     loginScannerResult: null  // { type: 'success'|'error', message, detail }
@@ -391,6 +394,12 @@ function renderEmployeeView() {
 
 function renderAdminView() {
     if (state.view !== 'admin') return;
+
+    // Update navbar title with organization name
+    const brandEl = document.querySelector('.navbar-brand');
+    if (brandEl) {
+        brandEl.textContent = state.organizationName || t('adminPanel.adminPanel');
+    }
 
     // Sidebar active states + sub-view visibility
     ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile'].forEach(v => {
@@ -2009,23 +2018,34 @@ const onLoginScanSuccess = async (decodedText) => {
 const loadAdminData = async (showPageSpinner = true) => {
     setState({ loading: true, dataError: '', ...(showPageSpinner && { dataLoaded: false }) });
     try {
-        const res = await callGas('getDashboardData', state.token);
-        if (res && res.status === 'success') {
-            setState({
-                adminStats: res.data.stats,
-                adminRecap: res.data.recap,
-                adminMonthlyTrend: res.data.monthlyTrend || [],
+        const [dashRes, settingsRes] = await Promise.all([
+            callGas('getDashboardData', state.token),
+            callGas('getSystemSettings', state.token)
+        ]);
+
+        if (dashRes && dashRes.status === 'success') {
+            const updates = {
+                adminStats: dashRes.data.stats,
+                adminRecap: dashRes.data.recap,
+                adminMonthlyTrend: dashRes.data.monthlyTrend || [],
                 loading: false,
                 dataLoaded: true,
                 dataError: ''
-            });
+            };
+
+            if (settingsRes && settingsRes.status === 'success') {
+                updates.organizationName = settingsRes.data.organizationName || '';
+            }
+
+            setState(updates);
             // Load shifts and positions immediately for dashboard (needed for user forms)
             loadManagementData();
         } else {
-            const msg = res?.message || 'Failed to load dashboard data.';
+            const msg = dashRes?.message || 'Failed to load dashboard data.';
             setState({ loading: false, dataLoaded: true, dataError: showPageSpinner ? msg : '', errorMessage: showPageSpinner ? '' : msg });
         }
-    } catch {
+    } catch (error) {
+        console.error('Error loading admin data:', error);
         setState({ loading: false, dataLoaded: true, dataError: showPageSpinner ? 'Failed to load administrative data. Check your connection.' : '', errorMessage: showPageSpinner ? '' : 'Failed to reload data.' });
     }
 };
@@ -2564,7 +2584,12 @@ const exportAttendanceCsv = () => {
         return isRange ? [i + 1, r.date || '', ...base.slice(1)] : base;
     });
 
-    const csvContent = [headers, ...rows]
+    const rangeLabel = isRange 
+        ? `${state.dailyAttendance.startDate} to ${state.dailyAttendance.endDate}`
+        : (state.dailyAttendance.date || '');
+
+    const titleRow = [`${state.organizationName || 'Attendance Report'} - ${rangeLabel}`];
+    const csvContent = [titleRow, [], headers, ...rows]
         .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
 
@@ -2604,7 +2629,7 @@ const exportAttendanceExcel = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
         <head><meta charset="UTF-8"><style>table { border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #f2f2f2; font-weight: bold; }</style></head>
         <body>
-            <h2>Attendance Report - ${rangeLabel}</h2>
+            <h2>${state.organizationName || 'Attendance Report'} - ${rangeLabel}</h2>
             <table>
                 <thead>
                     <tr>
@@ -2706,7 +2731,7 @@ const printAttendance = () => {
     </style>
 </head>
 <body>
-    <h2>Daily Attendance Report</h2>
+    <h2>${state.organizationName || 'Daily Attendance Report'}</h2>
     <p class="subtitle">Period: ${rangeLabel}</p>
     <table>
         <thead>
@@ -2776,7 +2801,7 @@ const printLogs = () => {
     </style>
 </head>
 <body>
-    <h2>Activity Logs Report</h2>
+    <h2>${state.organizationName || 'Activity Logs Report'}</h2>
     <table>
         <thead>
             <tr>
