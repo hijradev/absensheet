@@ -1426,8 +1426,9 @@ function renderManualAttendanceView() {
             </td></tr>`;
         } else {
             table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
-                Set a date range and click Load to view records.
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="mb-0">Loading attendance records automatically...</p>
+                <p class="text-muted small">Setting default date range to current month.</p>
             </td></tr>`;
         }
         renderManualAttPagination(0, 0);
@@ -1460,7 +1461,10 @@ function renderManualAttendanceView() {
     }
 
     if (total === 0) {
-        table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No records found.</td></tr>`;
+        table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9h.01" /><path d="M11 12h1v4h1" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg>
+            No attendance records found for this period.
+        </td></tr>`;
         renderManualAttPagination(0, 0);
         return;
     }
@@ -3034,8 +3038,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const m = String(now.getMonth() + 1).padStart(2, '0');
                 const startEl = document.getElementById('manual-att-filter-start');
                 const endEl   = document.getElementById('manual-att-filter-end');
-                if (startEl && !startEl.value) startEl.value = `${y}-${m}-01`;
-                if (endEl   && !endEl.value)   endEl.value   = now.toISOString().slice(0, 10);
+                
+                let startVal = `${y}-${m}-01`;
+                let endVal   = now.toISOString().slice(0, 10);
+                
+                if (startEl && !startEl.value) startEl.value = startVal;
+                if (endEl   && !endEl.value)   endEl.value   = endVal;
+
+                // Auto-load if not yet loaded for this view
+                if (!state.manualAttLoaded && !state.manualAttLoading) {
+                    loadManualAttendanceRecords();
+                }
             }
             if (view === 'reports') {
                 if (!state.reportsLoaded) setState({ reportsLoaded: true });

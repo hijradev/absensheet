@@ -151,10 +151,8 @@
                             </div>
                             <div class="card-body">
                                 <div id="chart-pie-attendance" style="min-height: 350px;">
-                                    <div class="d-flex align-items-center justify-content-center" style="height: 350px;" id="chart-pie-loading">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
-                                        </div>
+                                    <div class="placeholder-glow" id="chart-pie-loading" style="height: 350px;">
+                                        <div class="placeholder col-12 h-100 rounded"></div>
                                     </div>
                                 </div>
                             </div>
@@ -170,10 +168,8 @@
                             </div>
                             <div class="card-body">
                                 <div id="chart-bar-attendance" style="min-height: 350px;">
-                                    <div class="d-flex align-items-center justify-content-center" style="height: 350px;" id="chart-bar-loading">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
-                                        </div>
+                                    <div class="placeholder-glow" id="chart-bar-loading" style="height: 350px;">
+                                        <div class="placeholder col-12 h-100 rounded"></div>
                                     </div>
                                 </div>
                             </div>
@@ -551,8 +547,8 @@
                             </thead>
                             <tbody id="manual-att-table">
                                 <tr><td colspan="9" class="text-center text-muted py-5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
-                                    Set a date range and click Load to view records.
+                                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                                    <p class="mb-0">Loading attendance records...</p>
                                 </td></tr>
                             </tbody>
                         </table>
@@ -785,11 +781,36 @@
                 <!-- QR Cards Grid -->
                 <div id="qr-cards-container">
                     <!-- Loading state -->
-                    <div id="qr-loading" class="text-center py-5" style="display: none;">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden" data-i18n="common.loading">Loading…</span>
+                    <div id="qr-loading" class="placeholder-glow py-5" style="display: none;">
+                        <div class="row row-cards">
+                            <div class="col-sm-6 col-lg-4">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="placeholder col-12 rounded mb-2" style="height: 150px;"></div>
+                                        <div class="placeholder col-8 rounded mb-1"></div>
+                                        <div class="placeholder col-4 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="placeholder col-12 rounded mb-2" style="height: 150px;"></div>
+                                        <div class="placeholder col-8 rounded mb-1"></div>
+                                        <div class="placeholder col-4 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="placeholder col-12 rounded mb-2" style="height: 150px;"></div>
+                                        <div class="placeholder col-8 rounded mb-1"></div>
+                                        <div class="placeholder col-4 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-muted" data-i18n="qrCodes.generatingQrCodes">Generating QR codes…</p>
                     </div>
                     <!-- Empty state -->
                     <div id="qr-empty" class="text-center py-5">

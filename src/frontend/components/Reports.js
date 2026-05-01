@@ -28,9 +28,21 @@ export class Reports {
     async loadReportData(startDateOrPeriod, endDate) {
         const spinner = document.getElementById('report-load-spinner');
         const icon = document.getElementById('report-load-icon');
+        const tableBody = document.getElementById('report-table-body');
 
         if (spinner) spinner.style.display = 'inline-block';
         if (icon) icon.style.display = 'none';
+
+        // Show skeletons in table
+        if (tableBody) {
+            tableBody.innerHTML = [1, 2, 3, 4, 5].map(() => `
+                <tr>
+                    <td colspan="8">
+                        <div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
         try {
             let res;
