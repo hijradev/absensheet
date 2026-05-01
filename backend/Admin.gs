@@ -18,8 +18,8 @@ function getDashboardData(token) {
     const attendanceDbId = props["ATTENDANCE_DB_ID_" + currentYear];
 
     const result = {
-      stats: { tepatWaktu: 0, terlambat: 0, bolos: 0 },
-      monthStats: { tepatWaktu: 0, terlambat: 0, bolos: 0, notPresent: 0 },
+      stats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0 },
+      monthStats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0, notPresent: 0 },
       recap: [],
       monthlyTrend: []
     };
@@ -118,14 +118,14 @@ function getDashboardData(token) {
           if (isInCurrentMonth) {
             result.monthStats.notPresent++;
           }
-        } else if (checkIn === "Bolos" || checkOut === "Bolos") {
+        } else if (checkIn === "Pulang Awal" || checkOut === "Pulang Awal") {
           monthlyMap[monthKey].absent++;
           if (isInCurrentWeek) {
             recapMap[empId].absent++;
             result.stats.absent = (result.stats.absent || 0) + 1;
           }
           if (isInCurrentMonth) {
-            result.monthStats.bolos++;
+            result.monthStats.pulangAwal++;
           }
         } else {
           monthlyMap[monthKey].notPresent++;
@@ -244,7 +244,7 @@ function getAdminAllData(token) {
     const logDbId = props.LOG_DB_ID;
 
     const result = {
-      stats: { tepatWaktu: 0, terlambat: 0, bolos: 0 },
+      stats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0 },
       logs: [],
       recap: [],
       management: { employees: [], shifts: [], positions: [], logs: [] }
@@ -288,7 +288,7 @@ function getAdminAllData(token) {
             name: empNameMap[empId] || empId,
             tepatWaktu: 0,
             terlambat: 0,
-            bolos: 0
+            pulangAwal: 0
           };
         }
 
@@ -297,7 +297,7 @@ function getAdminAllData(token) {
 
         if (attData[i][3] === "Tepat Waktu") { recapMap[empId].tepatWaktu++; if (isInCurrentMonth) result.stats.tepatWaktu++; }
         if (attData[i][3] === "Terlambat")   { recapMap[empId].terlambat++;  if (isInCurrentMonth) result.stats.terlambat++; }
-        if (attData[i][5] === "Bolos")        { recapMap[empId].bolos++;      if (isInCurrentMonth) result.stats.bolos++; }
+        if (attData[i][5] === "Pulang Awal")        { recapMap[empId].pulangAwal++;      if (isInCurrentMonth) result.stats.pulangAwal++; }
       }
 
       // Sort by timeliness (tepatWaktu) descending — top performers first
@@ -431,7 +431,7 @@ function getReportData(token, startDateOrPeriod, endDate) {
 
       if (row[3] === "Tepat Waktu") { recapMap[empId].onTime++;   result.summary.totalOnTime++; }
       if (row[3] === "Terlambat")   { recapMap[empId].late++;     result.summary.totalLate++;   }
-      if (row[5] === "Bolos")       { recapMap[empId].absent++;   result.summary.totalAbsent++; }
+      if (row[5] === "Pulang Awal")       { recapMap[empId].absent++;   result.summary.totalAbsent++; }
     }
 
     result.reportData = Object.values(recapMap);
@@ -453,10 +453,10 @@ function getRecap(token) {
     const recap = {};
     for (let i = 1; i < attData.length; i++) {
       const empId = String(attData[i][1]);
-      if (!recap[empId]) recap[empId] = { id: empId, tepatWaktu: 0, terlambat: 0, bolos: 0 };
+      if (!recap[empId]) recap[empId] = { id: empId, tepatWaktu: 0, terlambat: 0, pulangAwal: 0 };
       if (attData[i][3] === "Tepat Waktu") recap[empId].tepatWaktu++;
       if (attData[i][3] === "Terlambat")   recap[empId].terlambat++;
-      if (attData[i][5] === "Bolos")        recap[empId].bolos++;
+      if (attData[i][5] === "Pulang Awal")        recap[empId].pulangAwal++;
     }
     return successResponse(Object.values(recap));
   } catch (e) {

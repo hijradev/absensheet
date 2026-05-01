@@ -46,6 +46,10 @@ export class ComponentLoader {
                     const { Settings } = await import('../components/Settings.js');
                     ComponentClass = Settings;
                     break;
+                case 'profile':
+                    const { Profile } = await import('../components/Profile.js');
+                    ComponentClass = Profile;
+                    break;
                 default:
                     throw new Error(`Unknown component: ${componentName}`);
             }

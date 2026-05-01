@@ -177,8 +177,8 @@ function seedEmployees(props) {
  *   Staff/Senior/Jr   → 70% Tepat Waktu, 25% Terlambat, 5% absent (no record)
  *
  * Check-out status distribution:
- *   ~60% Tepat Waktu, ~25% Lembur, ~15% Bolos
- *   (Bolos only possible for Staff/Junior)
+ *   ~60% Tepat Waktu, ~25% Lembur, ~15% Pulang Awal
+ *   (Pulang Awal only possible for Staff/Junior)
  *
  * Absence rate: ~5% of working days for Staff/Junior, ~2% for others.
  */
@@ -317,7 +317,7 @@ function seedAttendance(props) {
           checkOutStatus = "Lembur";
         } else {
           checkOutMinutes = times.end - randomInt(1, 30);
-          checkOutStatus = "Bolos";
+          checkOutStatus = "Pulang Awal";
         }
       } else if (emp.tier === 1) {
         // Supervisor/Lead: 55% on-time, 35% overtime, 10% early
@@ -329,7 +329,7 @@ function seedAttendance(props) {
           checkOutStatus = "Lembur";
         } else {
           checkOutMinutes = times.end - randomInt(1, 45);
-          checkOutStatus = "Bolos";
+          checkOutStatus = "Pulang Awal";
         }
       } else {
         // Staff/Junior: 60% on-time, 25% overtime, 15% early
@@ -341,7 +341,7 @@ function seedAttendance(props) {
           checkOutStatus = "Lembur";
         } else {
           checkOutMinutes = times.end - randomInt(1, 60);
-          checkOutStatus = "Bolos";
+          checkOutStatus = "Pulang Awal";
         }
       }
 

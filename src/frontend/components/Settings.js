@@ -9,45 +9,67 @@ export class Settings {
         this.callGas = callGas;
         this.currentSettings = {
             organizationName: '',
-            currentLanguage: getLanguage(),
-            passwordData: {
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            }
+            currentLanguage: getLanguage()
         };
         this.loading = {
             organizationName: false,
-            password: false,
             language: false
         };
+        this.pageLoading = true;
     }
 
     async loadData() {
-        this.setState({ loading: true });
+        this.pageLoading = true;
+        this.render();
         try {
             const res = await this.callGas('getSystemSettings', this.state.token);
             if (res && res.status === 'success') {
                 this.currentSettings.organizationName = res.data.organizationName || '';
-                this.setState({ loading: false });
+                this.pageLoading = false;
                 this.render();
             } else {
-                this.setState({ 
-                    loading: false, 
-                    errorMessage: res?.message || t('failedToLoadSettings')
-                });
+                this.pageLoading = false;
+                this.setState({ errorMessage: res?.message || t('failedToLoadSettings') });
+                this.render();
             }
         } catch (error) {
-            this.setState({ 
-                loading: false, 
-                errorMessage: t('failedToLoadSettings')
-            });
+            this.pageLoading = false;
+            this.setState({ errorMessage: t('failedToLoadSettings') });
+            this.render();
         }
     }
 
     render() {
         const container = document.getElementById('admin-content');
         if (!container) return;
+
+        if (this.pageLoading) {
+            container.innerHTML = `
+                <div class="page-header d-print-none">
+                    <div class="container-xl">
+                        <div class="row g-2 align-items-center">
+                            <div class="col">
+                                <div class="page-pretitle">${t('adminPanel')}</div>
+                                <h2 class="page-title">${t('settings')}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="page-body">
+                    <div class="container-xl">
+                        <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                    <span class="visually-hidden">${t('loading') || 'Loading...'}</span>
+                                </div>
+                                <div class="text-muted">${t('loading') || 'Loading...'}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
 
         container.innerHTML = `
             <div class="page-header d-print-none">
@@ -176,96 +198,6 @@ export class Settings {
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Password Change -->
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3 class="card-title">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <rect x="5" y="11" width="14" height="10" rx="2"/>
-                                            <circle cx="12" cy="16" r="1"/>
-                                            <path d="M8 11v-4a4 4 0 0 1 8 0v4"/>
-                                        </svg>
-                                        ${t('changePassword')}
-                                    </h3>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-lg-8">
-                                            <form id="password-form">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="current-password">${t('currentPassword')}</label>
-                                                    <input type="password" 
-                                                           class="form-control" 
-                                                           id="current-password" 
-                                                           placeholder="${t('enterCurrentPassword')}"
-                                                           required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="new-password">${t('newPassword')}</label>
-                                                    <input type="password" 
-                                                           class="form-control" 
-                                                           id="new-password" 
-                                                           placeholder="${t('enterNewPassword')}"
-                                                           minlength="6"
-                                                           required>
-                                                    <div class="form-hint">${t('passwordRequirements')}</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="confirm-password">${t('confirmNewPassword')}</label>
-                                                    <input type="password" 
-                                                           class="form-control" 
-                                                           id="confirm-password" 
-                                                           placeholder="${t('confirmNewPassword')}"
-                                                           required>
-                                                </div>
-                                                <div class="d-flex">
-                                                    <button type="submit" class="btn btn-primary" ${this.loading.password ? 'disabled' : ''}>
-                                                        ${this.loading.password ? `
-                                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                                            ${t('changing')}
-                                                        ` : `
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
-                                                                <circle cx="12" cy="14" r="2"/>
-                                                                <polyline points="14,4 14,8 8,8 8,4"/>
-                                                            </svg>
-                                                            ${t('changePassword')}
-                                                        `}
-                                                    </button>
-                                                    <button type="button" class="btn btn-link ms-2" id="btn-clear-password-form">
-                                                        ${t('cancel')}
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                        <div class="col-lg-4">
-                                            <div class="card card-sm">
-                                                <div class="card-body">
-                                                    <div class="row align-items-center">
-                                                        <div class="col-auto">
-                                                            <span class="bg-blue text-white avatar">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                    <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>
-                                                                </svg>
-                                                            </span>
-                                                        </div>
-                                                        <div class="col">
-                                                            <div class="font-weight-medium">${t('securityTip')}</div>
-                                                            <div class="text-muted">${t('securityTipDescription')}</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -290,32 +222,6 @@ export class Settings {
         const saveLanguageBtn = document.getElementById('save-language-btn');
         if (saveLanguageBtn) {
             saveLanguageBtn.addEventListener('click', () => this.handleLanguageSave());
-        }
-
-        // Password form
-        const passwordForm = document.getElementById('password-form');
-        if (passwordForm) {
-            passwordForm.addEventListener('submit', (e) => this.handlePasswordChange(e));
-        }
-
-        // Clear password form button
-        const clearBtn = document.getElementById('btn-clear-password-form');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearPasswordForm());
-        }
-
-        // Real-time password validation
-        const newPasswordInput = document.getElementById('new-password');
-        const confirmPasswordInput = document.getElementById('confirm-password');
-        
-        if (newPasswordInput && confirmPasswordInput) {
-            confirmPasswordInput.addEventListener('input', () => {
-                this.validatePasswordMatch();
-            });
-            
-            newPasswordInput.addEventListener('input', () => {
-                this.validatePasswordMatch();
-            });
         }
     }
 
@@ -399,88 +305,6 @@ export class Settings {
         }
     }
 
-    async handlePasswordChange(e) {
-        e.preventDefault();
-
-        const currentPassword = document.getElementById('current-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-
-        // Validation
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            this.showError(t('allPasswordFieldsRequired'));
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            this.showError(t('passwordTooShort'));
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            this.showError(t('passwordsDoNotMatch'));
-            return;
-        }
-
-        if (currentPassword === newPassword) {
-            this.showError(t('newPasswordSameAsCurrent'));
-            return;
-        }
-
-        this.loading.password = true;
-        this.render();
-
-        try {
-            const res = await this.callGas('changeAdminPassword', this.state.token, {
-                currentPassword: currentPassword,
-                newPassword: newPassword
-            });
-
-            if (res && res.status === 'success') {
-                this.clearPasswordForm();
-                this.showSuccess(t('passwordChangedSuccessfully'));
-            } else {
-                this.showError(res?.message || t('failedToChangePassword'));
-            }
-        } catch (error) {
-            this.showError(t('failedToChangePassword'));
-        } finally {
-            this.loading.password = false;
-            this.render();
-        }
-    }
-
-    validatePasswordMatch() {
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        const confirmInput = document.getElementById('confirm-password');
-
-        if (confirmPassword && newPassword !== confirmPassword) {
-            confirmInput.classList.add('is-invalid');
-            confirmInput.classList.remove('is-valid');
-        } else if (confirmPassword) {
-            confirmInput.classList.add('is-valid');
-            confirmInput.classList.remove('is-invalid');
-        } else {
-            confirmInput.classList.remove('is-invalid', 'is-valid');
-        }
-    }
-
-    clearPasswordForm() {
-        document.getElementById('current-password').value = '';
-        document.getElementById('new-password').value = '';
-        document.getElementById('confirm-password').value = '';
-        
-        // Remove validation classes
-        const inputs = ['current-password', 'new-password', 'confirm-password'];
-        inputs.forEach(id => {
-            const input = document.getElementById(id);
-            if (input) {
-                input.classList.remove('is-invalid', 'is-valid');
-            }
-        });
-    }
-
     showSuccess(message) {
         this.setState({ 
             successMessage: message, 
@@ -502,7 +326,6 @@ export class Settings {
     }
 
     showInfo(message) {
-        // You can implement info messages similar to success/error
         this.showSuccess(message);
     }
 

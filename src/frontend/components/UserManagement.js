@@ -106,7 +106,7 @@ export class UserManagement {
             } else {
                 table.innerHTML = paginatedUsers.map(u => `
                     <tr>
-                        <td><img src="${this.escHtml(u.photo_url || this.svgAvatar(40))}" class="avatar avatar-sm" alt=""></td>
+                        <td><img src="${this.escHtml(u.photo_url || this.svgAvatar(40))}" class="avatar avatar-sm" alt="" onerror="this.src='${this.svgAvatar(40)}'"></td>
                         <td>${this.escHtml(u.id)}</td>
                         <td>${this.escHtml(u.name)}</td>
                         <td>${this.escHtml(u.role)}</td>

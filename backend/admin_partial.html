@@ -1,6 +1,6 @@
 <div id="view-admin">
     <header class="navbar navbar-expand-md d-print-none glass-header">
-        <div class="container-xl">
+        <div class="container-fluid px-3">
             <h1 class="navbar-brand navbar-brand-autodark" data-i18n="adminPanel.adminPanel">Admin Panel</h1>
             <div class="navbar-nav flex-row order-md-last">
                 <div class="nav-item">
@@ -12,46 +12,96 @@
 
     <div class="admin-layout">
         <aside class="admin-sidebar">
+
+            <!-- Dashboard -->
             <div class="admin-sidebar-item" data-view="dashboard" id="nav-dashboard">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
-                <span data-i18n="dashboard">Dashboard</span>
+                <span data-i18n="adminPanel.dashboard">Dashboard</span>
             </div>
-            <div class="admin-sidebar-item" data-view="users" id="nav-users">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
-                <span data-i18n="adminPanel.userManagement">User Management</span>
+
+            <!-- Divider before system items -->
+            <!--<div class="admin-sidebar-divider"></div>-->
+
+            <!-- Attendance Group -->
+            <div class="admin-sidebar-group-header" data-group="attendance-group">
+                <div class="admin-sidebar-group-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /></svg>
+                    <span data-i18n="adminPanel.attendance">Attendance</span>
+                </div>
+                <svg class="admin-sidebar-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>
             </div>
-            <div class="admin-sidebar-item" data-view="shifts" id="nav-shifts">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 2" /><path d="M12 7v5" /></svg>
-                <span data-i18n="adminPanel.shiftManagement">Shift Management</span>
+            <div class="admin-sidebar-submenu" id="submenu-attendance-group">
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="attendance" id="nav-attendance">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /><path d="M11 15l1 0" /><path d="M12 15l0 3" /></svg>
+                    <span data-i18n="adminPanel.dailyAttendanceView">Daily Attendance</span>
+                </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="manual-attendance" id="nav-manual-attendance">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
+                    <span data-i18n="adminPanel.manualAttendance">Manual Attendance</span>
+                </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="qrcodes" id="nav-qrcodes">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 7l0 .01" /><path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M17 7l0 .01" /><path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 17l0 .01" /><path d="M14 14l1 0" /><path d="M14 17l0 3" /><path d="M17 14l0 3" /><path d="M20 17l0 3" /><path d="M17 20l3 0" /></svg>
+                    <span data-i18n="adminPanel.qrCodes">QR Codes</span>
+                </div>
             </div>
-            <div class="admin-sidebar-item" data-view="positions" id="nav-positions">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l8 0" /><path d="M8 13l6 0" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /></svg>
-                <span data-i18n="adminPanel.positionManagement">Group Management</span>
+
+            <!-- Management Group -->
+            <div class="admin-sidebar-group-header" data-group="management-group">
+                <div class="admin-sidebar-group-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
+                    <span data-i18n="adminPanel.management">Management</span>
+                </div>
+                <svg class="admin-sidebar-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>
             </div>
-            <div class="admin-sidebar-item" data-view="attendance" id="nav-attendance">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /><path d="M11 15l1 0" /><path d="M12 15l0 3" /></svg>
-                <span data-i18n="adminPanel.dailyAttendanceView">Daily Attendance</span>
+            <div class="admin-sidebar-submenu" id="submenu-management-group">
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="users" id="nav-users">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
+                    <span data-i18n="adminPanel.userManagement">User Management</span>
+                </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="shifts" id="nav-shifts">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 2" /><path d="M12 7v5" /></svg>
+                    <span data-i18n="adminPanel.shiftManagement">Shift Management</span>
+                </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="positions" id="nav-positions">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l8 0" /><path d="M8 13l6 0" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /></svg>
+                    <span data-i18n="adminPanel.positionManagement">Group Management</span>
+                </div>
             </div>
-            <div class="admin-sidebar-item" data-view="manual-attendance" id="nav-manual-attendance">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-5" /><path d="M10 14l10 -10" /><path d="M15 4l5 0l0 5" /></svg>
-                <span data-i18n="adminPanel.manualAttendance">Manual Attendance</span>
+
+            <!-- Reports & Logs Group -->
+            <div class="admin-sidebar-group-header" data-group="reports-group">
+                <div class="admin-sidebar-group-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3v18h18" /><path d="M20 18v3" /><path d="M16 16v5" /><path d="M12 13v8" /><path d="M8 16v5" /><path d="M3 11c6 0 5 -5 9 -5s3 5 9 5" /></svg>
+                    <span data-i18n="adminPanel.reportsAndLogs">Reports &amp; Logs</span>
+                </div>
+                <svg class="admin-sidebar-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>
             </div>
-            <div class="admin-sidebar-item" data-view="logs" id="nav-logs">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4" /></svg>
-                <span data-i18n="adminPanel.activityLogs">Activity Logs</span>
+            <div class="admin-sidebar-submenu" id="submenu-reports-group">
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="reports" id="nav-reports">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3v18h18" /><path d="M20 18v3" /><path d="M16 16v5" /><path d="M12 13v8" /><path d="M8 16v5" /><path d="M3 11c6 0 5 -5 9 -5s3 5 9 5" /></svg>
+                    <span data-i18n="adminPanel.reports">Reports</span>
+                </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="logs" id="nav-logs">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4" /></svg>
+                    <span data-i18n="adminPanel.activityLogs">Activity Logs</span>
+                </div>
             </div>
-            <div class="admin-sidebar-item" data-view="reports" id="nav-reports">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3v18h18" /><path d="M20 18v3" /><path d="M16 16v5" /><path d="M12 13v8" /><path d="M8 16v5" /><path d="M3 11c6 0 5 -5 9 -5s3 5 9 5" /></svg>
-                <span data-i18n="adminPanel.reports">Reports</span>
-            </div>
-            <div class="admin-sidebar-item" data-view="qrcodes" id="nav-qrcodes">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 7l0 .01" /><path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M17 7l0 .01" /><path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M7 17l0 .01" /><path d="M14 14l1 0" /><path d="M14 17l0 3" /><path d="M17 14l0 3" /><path d="M20 17l0 3" /><path d="M17 20l3 0" /></svg>
-                <span data-i18n="adminPanel.qrCodes">QR Codes</span>
-            </div>
+
+            <!-- Divider before system items -->
+            <!--<div class="admin-sidebar-divider"></div>-->
+
+            <!-- Settings -->
             <div class="admin-sidebar-item" data-view="settings" id="nav-settings">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>
-                <span data-i18n="settings">Settings</span>
+                <span data-i18n="adminPanel.settings">Settings</span>
             </div>
+
+            <!-- My Profile -->
+            <div class="admin-sidebar-item" data-view="profile" id="nav-profile">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
+                <span data-i18n="adminPanel.profile">My Profile</span>
+            </div>
+
         </aside>
 
         <main class="admin-content">
@@ -316,15 +366,7 @@
 
                 <!-- Summary Cards -->
                 <div class="row row-deck row-cards mb-4" id="attendance-summary-cards">
-                    <div class="col-6 col-lg-2">
-                        <div class="card premium-card text-center">
-                            <div class="card-body py-3">
-                                <div class="subheader text-muted" data-i18n="dailyAttendance.total">Total</div>
-                                <div class="h2 mb-0" id="att-stat-total">—</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg-2">
+                    <div class="col-6 col-sm-3">
                         <div class="card premium-card text-center border-success border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-success" data-i18n="dailyAttendance.onTime">On Time</div>
@@ -332,7 +374,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-2">
+                    <div class="col-6 col-sm-3">
                         <div class="card premium-card text-center border-warning border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-warning" data-i18n="dailyAttendance.late">Late</div>
@@ -340,7 +382,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-2">
+                    <div class="col-6 col-sm-3">
                         <div class="card premium-card text-center border-danger border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-danger" data-i18n="dailyAttendance.absent">Absent</div>
@@ -348,7 +390,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-2">
+                    <div class="col-6 col-sm-3">
                         <div class="card premium-card text-center border-secondary border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-muted" data-i18n="dailyAttendance.notPresent">Not Present</div>
@@ -363,13 +405,25 @@
                     <div class="card-body py-2">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <div class="d-flex align-items-center gap-2">
-                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.filterStatus">Filter:</label>
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.filterStatus">Status:</label>
                                 <select id="att-filter-status" class="form-select form-select-sm" style="width: auto;">
                                     <option value="" data-i18n="dailyAttendance.allStatus">All Status</option>
                                     <option value="Tepat Waktu" data-i18n="dailyAttendance.onTime">On Time</option>
                                     <option value="Terlambat" data-i18n="dailyAttendance.late">Late</option>
                                     <option value="Tidak Hadir" data-i18n="dailyAttendance.notPresent">Not Present</option>
-                                    <option value="Bolos" data-i18n="dailyAttendance.leftEarly">Left Early</option>
+                                    <option value="Pulang Awal" data-i18n="dailyAttendance.leftEarly">Left Early</option>
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.filterGroup">Group:</label>
+                                <select id="att-filter-group" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                                    <option value="">All Groups</option>
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted small fw-semibold" data-i18n="dailyAttendance.filterShift">Shift:</label>
+                                <select id="att-filter-shift" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+                                    <option value="">All Shifts</option>
                                 </select>
                             </div>
                             <div class="d-flex align-items-center gap-2 ms-auto">
@@ -615,7 +669,7 @@
 
                 <!-- Summary Cards -->
                 <div class="row row-deck row-cards mb-4">
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-4">
                         <div class="card premium-card text-center border-success border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-success" data-i18n="reports.totalOnTime">Total On Time</div>
@@ -623,7 +677,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-4">
                         <div class="card premium-card text-center border-warning border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-warning" data-i18n="reports.totalLate">Total Late</div>
@@ -631,7 +685,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-4">
                         <div class="card premium-card text-center border-danger border-opacity-25">
                             <div class="card-body py-3">
                                 <div class="subheader text-danger" data-i18n="reports.totalAbsent">Total Absent</div>
@@ -758,6 +812,13 @@
                 </div>
             </div>
 
+            <!-- Profile View -->
+            <div id="admin-view-profile" style="display: none;">
+                <div id="admin-profile-content">
+                    <!-- Profile content will be rendered by the Profile component -->
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -807,7 +868,7 @@
                             <select id="manual-att-checkout-status" class="form-select">
                                 <option value="">— None —</option>
                                 <option value="Tepat Waktu">On Time</option>
-                                <option value="Bolos">Left Early (Bolos)</option>
+                                <option value="Pulang Awal">Left Early (Pulang Awal)</option>
                                 <option value="Izin">Izin</option>
                                 <option value="Sakit">Sakit</option>
                                 <option value="Cuti">Cuti</option>

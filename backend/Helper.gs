@@ -162,7 +162,7 @@ function getCachedEmployees(masterDbId) {
       name:         String(data[i][2]),
       shift_id:     String(data[i][3]),
       role:         String(data[i][4]),
-      photo_url:    data[i][5] || "",
+      photo_url:    normalizeDrivePhotoUrl(data[i][5] || ""),
       jabatan_id:   data[i][6] || ""
     });
   }
@@ -237,6 +237,28 @@ function invalidateMasterCache() {
 
 // ===== IMAGE UPLOAD =====
 
+/**
+ * Converts any Google Drive file URL to a thumbnail URL usable as <img src>.
+ * Handles:
+ *   - Already-correct thumbnail URLs (pass through)
+ *   - Old viewer URLs: https://drive.google.com/file/d/FILE_ID/view
+ *   - Open URLs:       https://drive.google.com/open?id=FILE_ID
+ *   - Empty strings (pass through)
+ */
+function normalizeDrivePhotoUrl(url) {
+  if (!url) return "";
+  // Already a thumbnail URL — leave it alone
+  if (url.indexOf("drive.google.com/thumbnail") !== -1) return url;
+  // Extract file ID from viewer URL: /file/d/FILE_ID/
+  var viewerMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (viewerMatch) return "https://drive.google.com/thumbnail?id=" + viewerMatch[1] + "&sz=w200";
+  // Extract file ID from open URL: ?id=FILE_ID
+  var openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (openMatch) return "https://drive.google.com/thumbnail?id=" + openMatch[1] + "&sz=w200";
+  // Unknown format — return as-is
+  return url;
+}
+
 function uploadImageToDrive(base64Data, fileName) {
   try {
     // Validate: only allow image MIME types
@@ -261,7 +283,10 @@ function uploadImageToDrive(base64Data, fileName) {
     const blob = Utilities.newBlob(bytes, contentType, fileName);
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return file.getUrl().replace("view?usp=drivesdk", "view");
+    // Return a direct-display thumbnail URL usable as <img src>
+    // The viewer URL (drive.google.com/file/d/ID/view) cannot be embedded directly.
+    const fileId = file.getId();
+    return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w200";
   } catch (e) {
     console.error("Error uploading image:", e);
     throw e;
