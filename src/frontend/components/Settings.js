@@ -49,20 +49,34 @@ export class Settings {
                     <div class="container-xl">
                         <div class="row g-2 align-items-center">
                             <div class="col">
-                                <div class="page-pretitle">${t('adminPanel')}</div>
-                                <h2 class="page-title">${t('settings')}</h2>
+                                <div class="page-pretitle placeholder-glow"><span class="placeholder col-2 rounded"></span></div>
+                                <h2 class="page-title placeholder-glow"><span class="placeholder col-3 rounded"></span></h2>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="page-body">
                     <div class="container-xl">
-                        <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
-                            <div class="text-center">
-                                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                                    <span class="visually-hidden">${t('loading') || 'Loading...'}</span>
+                        <div class="row row-cards">
+                            <div class="col-12 col-lg-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="placeholder-glow mb-3"><span class="placeholder col-4 rounded"></span></div>
+                                        <div class="placeholder-glow mb-3"><span class="placeholder col-12 rounded" style="height:38px;"></span></div>
+                                        <div class="placeholder-glow"><span class="placeholder col-3 rounded" style="height:38px;"></span></div>
+                                    </div>
                                 </div>
-                                <div class="text-muted">${t('loading') || 'Loading...'}</div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="placeholder-glow mb-3"><span class="placeholder col-4 rounded"></span></div>
+                                        <div class="row g-2">
+                                            <div class="col-6"><div class="placeholder-glow"><span class="placeholder col-12 rounded" style="height:70px;"></span></div></div>
+                                            <div class="col-6"><div class="placeholder-glow"><span class="placeholder col-12 rounded" style="height:70px;"></span></div></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
