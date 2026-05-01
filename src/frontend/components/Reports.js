@@ -72,12 +72,18 @@ export class Reports {
     updateSummaryStats(summary) {
         const setEl = (id, val) => {
             const el = document.getElementById(id);
-            if (el) el.textContent = val || 0;
+            if (el) el.textContent = val || '0%';
         };
         
-        setEl('report-stat-ontime', summary?.totalOnTime || 0);
-        setEl('report-stat-late', summary?.totalLate || 0);
-        setEl('report-stat-absent', summary?.totalAbsent || 0);
+        const onTime = summary?.totalOnTime || 0;
+        const late = summary?.totalLate || 0;
+        const absent = summary?.totalAbsent || 0;
+        const total = onTime + late + absent;
+        const pct = (val) => total > 0 ? `${Math.round((val / total) * 100)}%` : '0%';
+
+        setEl('report-stat-ontime', pct(onTime));
+        setEl('report-stat-late', pct(late));
+        setEl('report-stat-absent', pct(absent));
     }
 
     render() {

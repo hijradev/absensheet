@@ -69,7 +69,7 @@ function processAttendance(token, action) {
     const shiftEnd = parseTime(shiftData.end_time);
     let status = "Tepat Waktu";
     if (nowTime < shiftEnd) {
-      status = "Bolos";
+      status = "Pulang Awal";
     }
 
     existingRow[4] = timeStr;
@@ -104,7 +104,7 @@ function getDailyAttendance(token, dateStr) {
     const props = getProps();
     const currentYear = new Date().getFullYear();
     const attendanceDbId = props["ATTENDANCE_DB_ID_" + currentYear];
-    if (!attendanceDbId) return successResponse({ records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 } });
+    if (!attendanceDbId) return successResponse({ records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 } });
 
     const targetDate = dateStr || getTodayStr();
 
@@ -193,7 +193,7 @@ function getDailyAttendance(token, dateStr) {
       total:       employees.length,
       tepatWaktu:  records.filter(r => r.checkInStatus === "Tepat Waktu").length,
       terlambat:   records.filter(r => r.checkInStatus === "Terlambat").length,
-      bolos:       records.filter(r => r.checkOutStatus === "Bolos").length,
+      pulangAwal:       records.filter(r => r.checkOutStatus === "Pulang Awal").length,
       belumAbsen:  records.filter(r => r.checkInStatus === "Tidak Hadir").length
     };
 
@@ -330,7 +330,7 @@ function getDailyAttendanceRange(token, startDate, endDate) {
       total:      employees.length * dates.length,
       tepatWaktu: records.filter(r => r.checkInStatus === "Tepat Waktu").length,
       terlambat:  records.filter(r => r.checkInStatus === "Terlambat").length,
-      bolos:      records.filter(r => r.checkOutStatus === "Bolos").length,
+      pulangAwal:      records.filter(r => r.checkOutStatus === "Pulang Awal").length,
       belumAbsen: records.filter(r => r.checkInStatus === "Tidak Hadir").length
     };
 
@@ -362,7 +362,7 @@ function saveManualAttendance(token, data) {
       throw new Error("Invalid date format (yyyy-MM-dd required).");
 
     const validInStatuses  = ["Tepat Waktu", "Terlambat", "Izin", "Sakit", "Cuti", "Tidak Hadir"];
-    const validOutStatuses = ["Tepat Waktu", "Bolos", "Izin", "Sakit", "Cuti", ""];
+    const validOutStatuses = ["Tepat Waktu", "Pulang Awal", "Izin", "Sakit", "Cuti", ""];
 
     if (!validInStatuses.includes(checkInStatus))
       throw new Error("Invalid check-in status.");
@@ -622,7 +622,7 @@ function processAttendanceByQR(employeeId) {
       const shiftEnd = parseTime(shiftData.end_time);
       let status = "Tepat Waktu";
       if (nowTime < shiftEnd) {
-        status = "Bolos";
+        status = "Pulang Awal";
       }
 
       existingRow[4] = timeStr;

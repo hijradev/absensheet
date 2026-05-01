@@ -82,11 +82,13 @@ const state = {
     manualAttEditRecord: null,  // null = new, object = editing existing
 
     // Daily Attendance
-    dailyAttendance: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 }, date: '' },
+    dailyAttendance: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 }, date: '' },
     dailyAttendanceLoading: false,
     dailyAttendanceLoaded: false,
     dailyAttendanceError: '',
     attFilterStatus: '',
+    attFilterGroup: '',
+    attFilterShift: '',
     attSearch: '',
     attPage: 1,
     attPageSize: 10,
@@ -143,13 +145,13 @@ const callGas = (functionName, ...args) => {
                 } else if (functionName === 'getAdminInitialData') {
                     resolve({ status: 'success', data: { employees: [], shifts: [], positions: [], logs: [] } });
                 } else if (functionName === 'getAdminAllData') {
-                    resolve({ status: 'success', data: { stats: { tepatWaktu: 10, terlambat: 2, bolos: 1 }, logs: [], recap: [], management: { employees: [], shifts: [], positions: [], logs: [] } } });
+                    resolve({ status: 'success', data: { stats: { tepatWaktu: 10, terlambat: 2, pulangAwal: 1 }, logs: [], recap: [], management: { employees: [], shifts: [], positions: [], logs: [] } } });
                 } else if (functionName === 'getMyHistory') {
                     resolve({ status: 'success', data: [] });
                 } else if (functionName === 'getDailyAttendance') {
-                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 }, date: args[1] || new Date().toISOString().slice(0, 10) } });
+                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 }, date: args[1] || new Date().toISOString().slice(0, 10) } });
                 } else if (functionName === 'getDailyAttendanceRange') {
-                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 }, startDate: args[1], endDate: args[2], isRange: true } });
+                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 }, startDate: args[1], endDate: args[2], isRange: true } });
                 } else if (functionName === 'getManualAttendanceRecords') {
                     resolve({ status: 'success', data: { records: [], employees: [] } });
                 } else if (functionName === 'saveManualAttendance') {
@@ -170,6 +172,22 @@ const callGas = (functionName, ...args) => {
                     resolve({ status: 'success', message: 'Language preference saved successfully' });
                 } else if (functionName === 'changeAdminPassword') {
                     resolve({ status: 'success', message: 'Password changed successfully' });
+                } else if (functionName === 'getMyProfile') {
+                    const u = state.user || {};
+                    resolve({ status: 'success', data: {
+                        id: u.id || 'EMP001',
+                        name: u.name || 'Mock User',
+                        role: u.role || 'Employee',
+                        shift_id: u.shift_id || 'SHIFT1',
+                        shift: { id: 'SHIFT1', start_time: '08:00', end_time: '17:00' },
+                        jabatan_id: 'POS1',
+                        jabatan_name: 'Staff',
+                        photo_url: ''
+                    }});
+                } else if (functionName === 'changeMyPassword') {
+                    resolve({ status: 'success', message: 'Password changed successfully' });
+                } else if (functionName === 'uploadMyAvatar') {
+                    resolve({ status: 'success', data: { photo_url: '' }, message: 'Avatar updated' });
                 } else {
                     resolve({ status: 'success', data: null });
                 }
@@ -375,11 +393,32 @@ function renderAdminView() {
     if (state.view !== 'admin') return;
 
     // Sidebar active states + sub-view visibility
-    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings'].forEach(v => {
+    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile'].forEach(v => {
         const navEl = document.getElementById(`nav-${v}`);
         if (navEl) navEl.classList.toggle('active', state.adminView === v);
         const viewEl = document.getElementById(`admin-view-${v}`);
         if (viewEl) viewEl.style.display = state.adminView === v ? 'block' : 'none';
+    });
+
+    // Auto-expand the submenu group that contains the active view
+    const viewToGroup = {
+        'attendance':        'attendance-group',
+        'manual-attendance': 'attendance-group',
+        'qrcodes':           'attendance-group',
+        'users':             'management-group',
+        'shifts':            'management-group',
+        'positions':         'management-group',
+        'reports':           'reports-group',
+        'logs':              'reports-group',
+    };
+    const activeGroup = viewToGroup[state.adminView];
+    ['attendance-group', 'management-group', 'reports-group'].forEach(groupId => {
+        const header  = document.querySelector(`[data-group="${groupId}"]`);
+        const submenu = document.getElementById(`submenu-${groupId}`);
+        if (!header || !submenu) return;
+        const shouldOpen = groupId === activeGroup;
+        submenu.classList.toggle('open', shouldOpen);
+        header.classList.toggle('open', shouldOpen);
     });
 
     // Stats — elements only exist in the admin view
@@ -609,6 +648,28 @@ async function loadSettingsView() {
     }
 }
 
+async function loadAdminProfileView() {
+    try {
+        const { Profile } = await import('./components/Profile.js');
+        const component = new Profile(state, setState, callGas);
+        state.currentProfileComponent = component;
+        await component.loadData();
+    } catch (error) {
+        console.error('Failed to load Profile component:', error);
+    }
+}
+
+async function loadEmployeeProfileView() {
+    try {
+        const { Profile } = await import('./components/Profile.js');
+        const component = new Profile(state, setState, callGas);
+        state.currentProfileComponent = component;
+        await component.loadData();
+    } catch (error) {
+        console.error('Failed to load Profile component:', error);
+    }
+}
+
 async function loadReportData(startDateOrPeriod, endDate) {
     const component = state.currentReportComponent;
     if (component) {
@@ -694,7 +755,7 @@ function renderUsersTable() {
     } else {
         table.innerHTML = paginatedUsers.map(u => `
             <tr>
-                <td><img src="${escHtml(u.photo_url || svgAvatar(40))}" class="avatar avatar-sm" alt=""></td>
+                <td><img src="${escHtml(u.photo_url || svgAvatar(40))}" class="avatar avatar-sm" alt="" onerror="this.src='${svgAvatar(40)}'"></td>
                 <td>${escHtml(u.id)}</td>
                 <td>${escHtml(u.name)}</td>
                 <td>${escHtml(u.role)}</td>
@@ -1094,13 +1155,12 @@ function renderDailyAttendanceView() {
     const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
     if (state.dailyAttendanceLoaded) {
-        setEl('att-stat-total',      s.total);
         setEl('att-stat-ontime',     s.tepatWaktu);
         setEl('att-stat-late',       s.terlambat);
-        setEl('att-stat-absent',     s.bolos);
+        setEl('att-stat-absent',     s.pulangAwal);
         setEl('att-stat-notpresent', s.belumAbsen);
     } else {
-        ['att-stat-total','att-stat-ontime','att-stat-late','att-stat-absent','att-stat-notpresent']
+        ['att-stat-ontime','att-stat-late','att-stat-absent','att-stat-notpresent']
             .forEach(id => setEl(id, '—'));
     }
 
@@ -1116,6 +1176,22 @@ function renderDailyAttendanceView() {
     const pageSizeEl = document.getElementById('att-page-size');
     if (pageSizeEl && parseInt(pageSizeEl.value, 10) !== state.attPageSize) {
         pageSizeEl.value = String(state.attPageSize);
+    }
+
+    // Populate Group and Shift filter dropdowns from management data
+    const groupSel = document.getElementById('att-filter-group');
+    if (groupSel) {
+        const positions = state.adminManagement.positions || [];
+        const currentGroup = state.attFilterGroup;
+        groupSel.innerHTML = `<option value="">All Groups</option>` +
+            positions.map(p => `<option value="${escHtml(p.name)}" ${currentGroup === p.name ? 'selected' : ''}>${escHtml(p.name)}</option>`).join('');
+    }
+    const shiftSel = document.getElementById('att-filter-shift');
+    if (shiftSel) {
+        const shifts = state.adminManagement.shifts || [];
+        const currentShift = state.attFilterShift;
+        shiftSel.innerHTML = `<option value="">All Shifts</option>` +
+            shifts.map(s => `<option value="${escHtml(s.id)}" ${currentShift === s.id ? 'selected' : ''}>${escHtml(s.id)}</option>`).join('');
     }
 
     // Show/hide Date column based on whether this is a range result
@@ -1156,17 +1232,21 @@ function renderDailyAttendanceView() {
 
     // Apply filters
     const filterStatus = state.attFilterStatus;
+    const filterGroup  = state.attFilterGroup;
+    const filterShift  = state.attFilterShift;
     const searchTerm   = (state.attSearch || '').toLowerCase().trim();
 
     const filtered = state.dailyAttendance.records.filter(r => {
         const matchStatus = !filterStatus ||
             r.checkInStatus === filterStatus ||
             r.checkOutStatus === filterStatus;
+        const matchGroup  = !filterGroup  || r.position === filterGroup;
+        const matchShift  = !filterShift  || r.shiftId  === filterShift;
         const matchSearch = !searchTerm ||
             r.employeeId.toLowerCase().includes(searchTerm) ||
             r.employeeName.toLowerCase().includes(searchTerm) ||
             r.position.toLowerCase().includes(searchTerm);
-        return matchStatus && matchSearch;
+        return matchStatus && matchGroup && matchShift && matchSearch;
     });
 
     const total      = filtered.length;
@@ -1268,13 +1348,13 @@ function attStatusBadge(status) {
     const map = {
         'Tepat Waktu': 'bg-success text-white',
         'Terlambat':   'bg-warning text-white',
-        'Bolos':       'bg-danger text-white',
+        'Pulang Awal': 'bg-danger text-white',
         'Tidak Hadir': 'bg-secondary text-white'
     };
     const labelMap = {
         'Tepat Waktu': 'On Time',
         'Terlambat':   'Late',
-        'Bolos':       'Left Early',
+        'Pulang Awal': 'Left Early',
         'Tidak Hadir': 'Not Present'
     };
     if (!status) return '<span class="text-muted">—</span>';
@@ -1422,7 +1502,7 @@ function manualAttStatusBadge(status) {
     const map = {
         'Tepat Waktu': 'bg-success text-white',
         'Terlambat':   'bg-warning text-white',
-        'Bolos':       'bg-danger text-white',
+        'Pulang Awal': 'bg-danger text-white',
         'Tidak Hadir': 'bg-secondary text-white',
         'Izin':        'bg-azure text-white',
         'Sakit':       'bg-purple text-white',
@@ -1431,7 +1511,7 @@ function manualAttStatusBadge(status) {
     const labelMap = {
         'Tepat Waktu': 'On Time',
         'Terlambat':   'Late',
-        'Bolos':       'Left Early',
+        'Pulang Awal': 'Left Early',
         'Tidak Hadir': 'Not Present',
         'Izin':        'Permission',
         'Sakit':       'Sick Leave',
@@ -1561,7 +1641,9 @@ function renderModal() {
     if (saveSpinner) saveSpinner.style.display = state.loading ? 'inline-block' : 'none';
 
     if (state.formType === 'user') {
-        document.getElementById('user-photo-preview').src = state.formData.photo_url || svgAvatar(100);
+        const photoPreview = document.getElementById('user-photo-preview');
+        photoPreview.src = state.formData.photo_url || svgAvatar(100);
+        photoPreview.onerror = function() { this.src = svgAvatar(100); this.onerror = null; };
         document.getElementById('user-id').value = state.formData.id || '';
         document.getElementById('user-id').disabled = !state.isNewRecord;
         document.getElementById('user-name').value = state.formData.name || '';
@@ -2381,8 +2463,9 @@ function updateAllTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const actualKey = getActualKey(key);
-        const translation = t(actualKey);
-        if (translation && actualKey !== translation) {
+        // Try full key first (supports nested like 'profile.myProfile'), fall back to last part
+        const translation = t(key) !== key ? t(key) : t(actualKey);
+        if (translation && translation !== key && translation !== actualKey) {
             el.textContent = translation;
         }
     });
@@ -2422,17 +2505,21 @@ function updateAllTranslations() {
 const getFilteredAttendance = () => {
     if (!state.dailyAttendanceLoaded || !state.dailyAttendance.records) return [];
     const filterStatus = state.attFilterStatus;
+    const filterGroup  = state.attFilterGroup;
+    const filterShift  = state.attFilterShift;
     const searchTerm = (state.attSearch || '').toLowerCase().trim();
 
     return state.dailyAttendance.records.filter(r => {
         const matchStatus = !filterStatus ||
             r.checkInStatus === filterStatus ||
             r.checkOutStatus === filterStatus;
+        const matchGroup  = !filterGroup  || r.position === filterGroup;
+        const matchShift  = !filterShift  || r.shiftId  === filterShift;
         const matchSearch = !searchTerm ||
             r.employeeId.toLowerCase().includes(searchTerm) ||
             r.employeeName.toLowerCase().includes(searchTerm) ||
             r.position.toLowerCase().includes(searchTerm);
-        return matchStatus && matchSearch;
+        return matchStatus && matchGroup && matchShift && matchSearch;
     });
 };
 
@@ -2861,6 +2948,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.currentSettingsComponent && state.adminView === 'settings') {
             state.currentSettingsComponent.render();
         }
+        if (state.currentProfileComponent && (state.adminView === 'profile' || state.view === 'employee')) {
+            state.currentProfileComponent.render();
+        }
     });
     
     // Set up language selector dropdowns
@@ -2879,6 +2969,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.closest('#btn-open-scanner')) { startScanner(); return; }
         if (target.closest('#btn-close-scanner')) { stopScanner(); return; }
 
+        // Employee Profile
+        if (target.closest('.js-employee-profile-btn')) {
+            const dashboard = document.getElementById('employee-dashboard-panel');
+            const profilePanel = document.getElementById('employee-profile-panel');
+            if (dashboard) dashboard.style.display = 'none';
+            if (profilePanel) profilePanel.style.display = 'block';
+            loadEmployeeProfileView();
+            return;
+        }
+        if (target.closest('.js-employee-back-btn')) {
+            const dashboard = document.getElementById('employee-dashboard-panel');
+            const profilePanel = document.getElementById('employee-profile-panel');
+            if (dashboard) dashboard.style.display = 'block';
+            if (profilePanel) profilePanel.style.display = 'none';
+            return;
+        }
+
         // Language Toggle — delegated, survives dynamic HTML re-injection
         const langItem = target.closest('a[data-lang]');
         if (langItem) {
@@ -2887,6 +2994,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lang) {
                 setLanguage(lang);
                 updateLanguageDisplay(lang);
+            }
+            return;
+        }
+
+        // Admin Sidebar — group header toggle
+        const groupHeader = target.closest('.admin-sidebar-group-header');
+        if (groupHeader) {
+            const groupId = groupHeader.dataset.group;
+            const submenu = document.getElementById(`submenu-${groupId}`);
+            if (submenu) {
+                const isOpen = submenu.classList.contains('open');
+                submenu.classList.toggle('open', !isOpen);
+                groupHeader.classList.toggle('open', !isOpen);
             }
             return;
         }
@@ -2926,6 +3046,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (view === 'settings') {
                 loadSettingsView();
+            }
+            if (view === 'profile') {
+                loadAdminProfileView();
             }
             return;
         }
@@ -3073,6 +3196,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target;
         if (target.id === 'att-filter-status') {
             setState({ attFilterStatus: target.value, attPage: 1 });
+        }
+        if (target.id === 'att-filter-group') {
+            setState({ attFilterGroup: target.value, attPage: 1 });
+        }
+        if (target.id === 'att-filter-shift') {
+            setState({ attFilterShift: target.value, attPage: 1 });
         }
         if (target.id === 'att-page-size') {
             setState({ attPageSize: parseInt(target.value, 10) || 10, attPage: 1 });

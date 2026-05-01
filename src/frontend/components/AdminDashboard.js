@@ -48,7 +48,7 @@ export class AdminDashboard {
         
         setEl('stats-ontime', monthStats.tepatWaktu);
         setEl('stats-late', monthStats.terlambat);
-        setEl('stats-absent', monthStats.bolos);
+        setEl('stats-absent', monthStats.pulangAwal);
 
         // Render charts
         this.renderCharts();
@@ -69,7 +69,7 @@ export class AdminDashboard {
                 .sort((a, b) => b.tepatWaktu - a.tepatWaktu)
                 .slice(0, 10);
             table.innerHTML = top10Recap.map((r, idx) => {
-                const total = r.tepatWaktu + r.terlambat + r.bolos;
+                const total = r.tepatWaktu + r.terlambat + r.pulangAwal;
                 const rate = total > 0 ? Math.round((r.tepatWaktu / total) * 100) : 0;
                 const rateColor = rate >= 90 ? 'bg-success' : rate >= 70 ? 'bg-warning' : 'bg-danger';
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
@@ -81,7 +81,7 @@ export class AdminDashboard {
                     <td>${name}${empId}</td>
                     <td class="text-center"><span class="badge bg-success-lt text-success fw-semibold">${this.escHtml(r.tepatWaktu)}</span></td>
                     <td class="text-center"><span class="badge bg-warning-lt text-warning fw-semibold">${this.escHtml(r.terlambat)}</span></td>
-                    <td class="text-center"><span class="badge bg-danger-lt text-danger fw-semibold">${this.escHtml(r.bolos)}</span></td>
+                    <td class="text-center"><span class="badge bg-danger-lt text-danger fw-semibold">${this.escHtml(r.pulangAwal)}</span></td>
                     <td class="text-center">
                         <div class="d-flex align-items-center gap-2">
                             <div class="progress flex-grow-1" style="height: 6px;">
@@ -102,7 +102,7 @@ export class AdminDashboard {
         const pieData = [
             adminStats.tepatWaktu,
             adminStats.terlambat,
-            adminStats.bolos
+            adminStats.pulangAwal
         ];
         
         const pieOptions = {
@@ -179,7 +179,7 @@ export class AdminDashboard {
                     return `<div class="apexcharts-tooltip-box p-2">
                         <strong>${m.label}</strong><br/>
                         On Time: ${m.tepatWaktu} &nbsp; Late: ${m.terlambat}<br/>
-                        Absent: ${m.bolos}<br/>
+                        Absent: ${m.pulangAwal}<br/>
                         <strong>Attendance Rate: ${m.percentage}%</strong>
                     </div>`;
                 }

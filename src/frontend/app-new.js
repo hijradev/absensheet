@@ -34,18 +34,20 @@ const state = {
 
     // Admin — split loading: dashboard data loads first, management data loads on-demand per tab
     adminView: 'dashboard',
-    adminStats: { tepatWaktu: 0, terlambat: 0, bolos: 0 },
+    adminStats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0 },
     adminRecap: [],
     adminManagement: { employees: [], shifts: [], positions: [], logs: [] },
     managementLoaded: false,   // true once management data has been fetched
     managementLoading: false,
 
     // Daily Attendance
-    dailyAttendance: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 }, date: '' },
+    dailyAttendance: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 }, date: '' },
     dailyAttendanceLoading: false,
     dailyAttendanceLoaded: false,
     dailyAttendanceError: '',
     attFilterStatus: '',
+    attFilterGroup: '',
+    attFilterShift: '',
     attSearch: '',
     attPage: 1,
     attPageSize: 10,
@@ -77,7 +79,7 @@ const callGas = (functionName, ...args) => {
                 if (functionName === 'login') {
                     resolve({ status: 'success', data: { token: 'mock-token', user: { id: 'admin', role: 'Admin', name: 'Mock Admin' } } });
                 } else if (functionName === 'getDashboardData') {
-                    resolve({ status: 'success', data: { stats: { tepatWaktu: 10, terlambat: 2, bolos: 1 }, logs: [] } });
+                    resolve({ status: 'success', data: { stats: { tepatWaktu: 10, terlambat: 2, pulangAwal: 1 }, logs: [] } });
                 } else if (functionName === 'getRecap') {
                     resolve({ status: 'success', data: [] });
                 } else if (functionName === 'getAdminInitialData') {
@@ -85,7 +87,7 @@ const callGas = (functionName, ...args) => {
                 } else if (functionName === 'getMyHistory') {
                     resolve({ status: 'success', data: [] });
                 } else if (functionName === 'getDailyAttendance') {
-                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, bolos: 0, belumAbsen: 0 }, date: args[1] || new Date().toISOString().slice(0, 10) } });
+                    resolve({ status: 'success', data: { records: [], summary: { total: 0, tepatWaktu: 0, terlambat: 0, pulangAwal: 0, belumAbsen: 0 }, date: args[1] || new Date().toISOString().slice(0, 10) } });
                 } else {
                     resolve({ status: 'success', data: null });
                 }
@@ -265,7 +267,7 @@ function renderAdminView() {
     const statsAbsent   = document.getElementById('stats-absent');
     if (statsOntime)   statsOntime.textContent   = state.adminStats.tepatWaktu;
     if (statsLate)     statsLate.textContent      = state.adminStats.terlambat;
-    if (statsAbsent)   statsAbsent.textContent    = state.adminStats.bolos;
+    if (statsAbsent)   statsAbsent.textContent    = state.adminStats.pulangAwal;
 
     // Top 10 best performers by timeliness
     const top10Recap = state.adminRecap
@@ -273,7 +275,7 @@ function renderAdminView() {
         .sort((a, b) => b.tepatWaktu - a.tepatWaktu)
         .slice(0, 10);
     renderTable('admin-recap-table', top10Recap, 6, (r, idx) => {
-        const total = r.tepatWaktu + r.terlambat + r.bolos;
+        const total = r.tepatWaktu + r.terlambat + r.pulangAwal;
         const rate = total > 0 ? Math.round((r.tepatWaktu / total) * 100) : 0;
         const rateColor = rate >= 90 ? 'bg-success' : rate >= 70 ? 'bg-warning' : 'bg-danger';
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
@@ -285,7 +287,7 @@ function renderAdminView() {
             <td>${name}${empId}</td>
             <td class="text-center"><span class="badge bg-success-lt text-success fw-semibold">${escHtml(r.tepatWaktu)}</span></td>
             <td class="text-center"><span class="badge bg-warning-lt text-warning fw-semibold">${escHtml(r.terlambat)}</span></td>
-            <td class="text-center"><span class="badge bg-danger-lt text-danger fw-semibold">${escHtml(r.bolos)}</span></td>
+            <td class="text-center"><span class="badge bg-danger-lt text-danger fw-semibold">${escHtml(r.pulangAwal)}</span></td>
             <td class="text-center">
                 <div class="d-flex align-items-center gap-2">
                     <div class="progress flex-grow-1" style="height: 6px;">

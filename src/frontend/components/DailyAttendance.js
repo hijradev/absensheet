@@ -34,20 +34,21 @@ export class DailyAttendance {
     }
 
     render() {
-        const { dailyAttendance, dailyAttendanceLoading, dailyAttendanceLoaded, dailyAttendanceError, attFilterStatus, attSearch, attPage, attPageSize } = this.state;
+        const { dailyAttendance, dailyAttendanceLoading, dailyAttendanceLoaded, dailyAttendanceError, attFilterStatus, attFilterGroup, attFilterShift, attSearch, attPage, attPageSize } = this.state;
         
         // Update summary cards
         const s = dailyAttendance.summary;
         const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
         if (dailyAttendanceLoaded) {
-            setEl('att-stat-total', s.total);
-            setEl('att-stat-ontime', s.tepatWaktu);
-            setEl('att-stat-late', s.terlambat);
-            setEl('att-stat-absent', s.bolos);
-            setEl('att-stat-notpresent', s.belumAbsen);
+            const total = (s.tepatWaktu || 0) + (s.terlambat || 0) + (s.pulangAwal || 0) + (s.belumAbsen || 0);
+            const pct = (val) => total > 0 ? `${Math.round((val / total) * 100)}%` : '0%';
+            setEl('att-stat-ontime', pct(s.tepatWaktu));
+            setEl('att-stat-late', pct(s.terlambat));
+            setEl('att-stat-absent', pct(s.pulangAwal));
+            setEl('att-stat-notpresent', pct(s.belumAbsen));
         } else {
-            ['att-stat-total','att-stat-ontime','att-stat-late','att-stat-absent','att-stat-notpresent']
+            ['att-stat-ontime','att-stat-late','att-stat-absent','att-stat-notpresent']
                 .forEach(id => setEl(id, '—'));
         }
 
@@ -97,17 +98,21 @@ export class DailyAttendance {
 
         // Apply filters
         const filterStatus = attFilterStatus;
+        const filterGroup  = attFilterGroup;
+        const filterShift  = attFilterShift;
         const searchTerm = (attSearch || '').toLowerCase().trim();
 
         const filtered = dailyAttendance.records.filter(r => {
             const matchStatus = !filterStatus ||
                 r.checkInStatus === filterStatus ||
                 r.checkOutStatus === filterStatus;
+            const matchGroup  = !filterGroup  || r.position === filterGroup;
+            const matchShift  = !filterShift  || r.shiftId  === filterShift;
             const matchSearch = !searchTerm ||
                 r.employeeId.toLowerCase().includes(searchTerm) ||
                 r.employeeName.toLowerCase().includes(searchTerm) ||
                 r.position.toLowerCase().includes(searchTerm);
-            return matchStatus && matchSearch;
+            return matchStatus && matchGroup && matchShift && matchSearch;
         });
 
         const total = filtered.length;
@@ -212,14 +217,14 @@ export class DailyAttendance {
         const map = {
             'Tepat Waktu': 'bg-success text-white',
             'Terlambat': 'bg-warning text-white',
-            'Bolos': 'bg-danger text-white',
+            'Pulang Awal': 'bg-danger text-white',
             'Tidak Hadir': 'bg-secondary text-white'
         };
         const labelMap = {
-            'Tepat Waktu': 'On Time',
-            'Terlambat': 'Late',
-            'Bolos': 'Left Early',
-            'Tidak Hadir': 'Not Present'
+            'Tepat Waktu': 'Tepat Waktu',
+            'Terlambat': 'Terlambat',
+            'Pulang Awal': 'Pulang Awal',
+            'Tidak Hadir': 'Tidak Hadir'
         };
         if (!status) return '<span class="text-muted">—</span>';
         const cls = map[status] || 'bg-secondary';

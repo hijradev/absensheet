@@ -63,7 +63,23 @@ export const translations = {
         connectionError: 'Connection error.',
         
         // Admin Panel
-        adminPanel: 'Admin Panel',
+        adminPanel: {
+            adminPanel: 'Admin Panel',
+            attendance: 'Attendance',
+            management: 'Management',
+            reportsAndLogs: 'Reports & Logs',
+            dashboard: 'Dashboard',
+            dailyAttendanceView: 'Daily Attendance',
+            manualAttendance: 'Manual Attendance',
+            qrCodes: 'QR Codes',
+            userManagement: 'User Management',
+            shiftManagement: 'Shift Management',
+            positionManagement: 'Group Management',
+            reports: 'Reports',
+            activityLogs: 'Activity Logs',
+            settings: 'Settings',
+            profile: 'My Profile',
+        },
         userManagement: 'User Management',
         shiftManagement: 'Shift Management',
         positionManagement: 'Group Management',
@@ -429,7 +445,26 @@ export const translations = {
         securityTip: 'Security Tip',
         securityTipDescription: 'Use a strong password with letters, numbers, and symbols',
         failedToLoadSettings: 'Failed to load settings',
-        failedToSaveSettings: 'Failed to save settings'
+        failedToSaveSettings: 'Failed to save settings',
+
+        // Profile
+        profile: {
+            myProfile: 'My Profile',
+            accountInfo: 'Account Information',
+            employeeId: 'Employee ID',
+            fullName: 'Full Name',
+            shift: 'Shift',
+            group: 'Group',
+            changeAvatar: 'Change Photo',
+            avatarHint: 'JPEG, PNG or WebP, max 2MB',
+            avatarTypeError: 'Only JPEG, PNG, or WebP images are allowed.',
+            avatarSizeError: 'Image must be 2MB or smaller.',
+            avatarUpdated: 'Profile photo updated successfully.',
+            avatarUploadFailed: 'Failed to upload photo.',
+            failedToLoad: 'Failed to load profile.',
+            passwordsMatch: 'Passwords match',
+            backToDashboard: 'Back to Dashboard'
+        }
     },
     id: {
         // Common UI
@@ -494,7 +529,23 @@ export const translations = {
         connectionError: 'Kesalahan koneksi.',
         
         // Admin Panel
-        adminPanel: 'Panel Admin',
+        adminPanel: {
+            adminPanel: 'Panel Admin',
+            attendance: 'Absensi',
+            management: 'Manajemen',
+            reportsAndLogs: 'Laporan & Log',
+            dashboard: 'Dashboard',
+            dailyAttendanceView: 'Absensi Harian',
+            manualAttendance: 'Absensi Manual',
+            qrCodes: 'Kode QR',
+            userManagement: 'Manajemen Pengguna',
+            shiftManagement: 'Manajemen Shift',
+            positionManagement: 'Manajemen Grup',
+            reports: 'Laporan',
+            activityLogs: 'Log Aktivitas',
+            settings: 'Pengaturan',
+            profile: 'Profil Saya',
+        },
         userManagement: 'Manajemen Pengguna',
         shiftManagement: 'Manajemen Shift',
         positionManagement: 'Manajemen Grup',
@@ -508,7 +559,7 @@ export const translations = {
         // Dashboard Stats
         onTime: 'Tepat Waktu',
         late: 'Terlambat',
-        absent: 'Bolos',
+        absent: 'Pulang Awal',
         notPresent: 'Tidak Hadir',
         thisMonth: 'Bulan Ini',
         thisWeek: 'Minggu Ini',
@@ -599,7 +650,7 @@ export const translations = {
         customRange: 'Rentang Kustom',
         totalOnTime: 'Total Tepat Waktu',
         totalLate: 'Total Terlambat',
-        totalAbsent: 'Total Bolos',
+        totalAbsent: 'Total Pulang Awal',
         totalRecap: 'Rekap Total',
         employeeIdCol: 'ID Karyawan',
         employeeNameCol: 'Nama Karyawan',
@@ -709,7 +760,7 @@ export const translations = {
         total: 'Total',
         onTime: 'Tepat Waktu',
         late: 'Terlambat',
-        absent: 'Bolos',
+        absent: 'Pulang Awal',
         notPresent: 'Tidak Hadir',
         leftEarly: 'Pulang Cepat',
         filterStatus: 'Filter:',
@@ -766,7 +817,7 @@ export const translations = {
         customRange: 'Rentang Kustom',
         totalOnTime: 'Total Tepat Waktu',
         totalLate: 'Total Terlambat',
-        totalAbsent: 'Total Bolos',
+        totalAbsent: 'Total Pulang Awal',
         totalRecap: 'Rekap Total',
         employeeIdCol: 'ID Karyawan',
         employeeNameCol: 'Nama Karyawan',
@@ -860,7 +911,26 @@ export const translations = {
         securityTip: 'Tips Keamanan',
         securityTipDescription: 'Gunakan kata sandi yang kuat dengan huruf, angka, dan simbol',
         failedToLoadSettings: 'Gagal memuat pengaturan',
-        failedToSaveSettings: 'Gagal menyimpan pengaturan'
+        failedToSaveSettings: 'Gagal menyimpan pengaturan',
+
+        // Profile
+        profile: {
+            myProfile: 'Profil Saya',
+            accountInfo: 'Informasi Akun',
+            employeeId: 'ID Karyawan',
+            fullName: 'Nama Lengkap',
+            shift: 'Shift',
+            group: 'Grup',
+            changeAvatar: 'Ganti Foto',
+            avatarHint: 'JPEG, PNG atau WebP, maks 2MB',
+            avatarTypeError: 'Hanya gambar JPEG, PNG, atau WebP yang diizinkan.',
+            avatarSizeError: 'Gambar harus 2MB atau lebih kecil.',
+            avatarUpdated: 'Foto profil berhasil diperbarui.',
+            avatarUploadFailed: 'Gagal mengunggah foto.',
+            failedToLoad: 'Gagal memuat profil.',
+            passwordsMatch: 'Kata sandi cocok',
+            backToDashboard: 'Kembali ke Dashboard'
+        }
     }
 };
 
