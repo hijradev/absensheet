@@ -18,8 +18,8 @@ function getDashboardData(token) {
     const attendanceDbId = props["ATTENDANCE_DB_ID_" + currentYear];
 
     const result = {
-      stats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0 },
-      monthStats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0, notPresent: 0 },
+      stats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0, cuti: 0, izin: 0, sakit: 0, libur: 0 },
+      monthStats: { tepatWaktu: 0, terlambat: 0, pulangAwal: 0, notPresent: 0, cuti: 0, izin: 0, sakit: 0, libur: 0 },
       recap: [],
       monthlyTrend: []
     };
@@ -71,14 +71,18 @@ function getDashboardData(token) {
             onTime: 0,
             late: 0,
             absent: 0,
-            notPresent: 0
+            notPresent: 0,
+            cuti: 0,
+            izin: 0,
+            sakit: 0,
+            libur: 0
           };
         }
 
         // Monthly trend: group by "YYYY-MM"
         const monthKey = rowDate.substring(0, 7);
         if (!monthlyMap[monthKey]) {
-          monthlyMap[monthKey] = { onTime: 0, late: 0, absent: 0, notPresent: 0, totalRecords: 0 };
+          monthlyMap[monthKey] = { onTime: 0, late: 0, absent: 0, notPresent: 0, cuti: 0, izin: 0, sakit: 0, libur: 0, totalRecords: 0 };
         }
 
         monthlyMap[monthKey].totalRecords++;
@@ -91,7 +95,43 @@ function getDashboardData(token) {
         const checkIn = attData[i][3];
         const checkOut = attData[i][5];
 
-        if (checkIn === "Tepat Waktu") {
+        // Check for leave statuses first
+        const leaveTypes = ["Cuti", "Izin", "Sakit", "Libur"];
+        if (leaveTypes.includes(checkIn)) {
+          // This is a leave day - count separately
+          monthlyMap[monthKey].notPresent++; // Still counts as not present for attendance rate
+          // Count specific leave type in monthlyMap
+          if (checkIn === "Cuti") monthlyMap[monthKey].cuti = (monthlyMap[monthKey].cuti || 0) + 1;
+          else if (checkIn === "Izin") monthlyMap[monthKey].izin = (monthlyMap[monthKey].izin || 0) + 1;
+          else if (checkIn === "Sakit") monthlyMap[monthKey].sakit = (monthlyMap[monthKey].sakit || 0) + 1;
+          else if (checkIn === "Libur") monthlyMap[monthKey].libur = (monthlyMap[monthKey].libur || 0) + 1;
+          if (isInCurrentWeek) {
+            recapMap[empId].notPresent++;
+            result.stats.notPresent = (result.stats.notPresent || 0) + 1;
+            // Count specific leave type
+            if (checkIn === "Cuti") {
+              result.stats.cuti = (result.stats.cuti || 0) + 1;
+              recapMap[empId].cuti = (recapMap[empId].cuti || 0) + 1;
+            } else if (checkIn === "Izin") {
+              result.stats.izin = (result.stats.izin || 0) + 1;
+              recapMap[empId].izin = (recapMap[empId].izin || 0) + 1;
+            } else if (checkIn === "Sakit") {
+              result.stats.sakit = (result.stats.sakit || 0) + 1;
+              recapMap[empId].sakit = (recapMap[empId].sakit || 0) + 1;
+            } else if (checkIn === "Libur") {
+              result.stats.libur = (result.stats.libur || 0) + 1;
+              recapMap[empId].libur = (recapMap[empId].libur || 0) + 1;
+            }
+          }
+          if (isInCurrentMonth) {
+            result.monthStats.notPresent++;
+            // Count specific leave type for month
+            if (checkIn === "Cuti") result.monthStats.cuti = (result.monthStats.cuti || 0) + 1;
+            else if (checkIn === "Izin") result.monthStats.izin = (result.monthStats.izin || 0) + 1;
+            else if (checkIn === "Sakit") result.monthStats.sakit = (result.monthStats.sakit || 0) + 1;
+            else if (checkIn === "Libur") result.monthStats.libur = (result.monthStats.libur || 0) + 1;
+          }
+        } else if (checkIn === "Tepat Waktu") {
           monthlyMap[monthKey].onTime++;
           if (isInCurrentWeek) {
             recapMap[empId].onTime++;
@@ -118,7 +158,7 @@ function getDashboardData(token) {
           if (isInCurrentMonth) {
             result.monthStats.notPresent++;
           }
-        } else if (checkIn === "Pulang Awal" || checkOut === "Pulang Awal") {
+        } else if (checkOut === "Pulang Awal") {
           monthlyMap[monthKey].absent++;
           if (isInCurrentWeek) {
             recapMap[empId].absent++;
@@ -153,7 +193,7 @@ function getDashboardData(token) {
           const pct = total > 0 ? Math.round((m.onTime / total) * 100) : 0;
           const parts = key.split("-");
           const label = monthNames[parseInt(parts[1], 10) - 1] + " " + parts[0];
-          return { month: key, label: label, percentage: pct, onTime: m.onTime, late: m.late, absent: m.absent, notPresent: m.notPresent, total: total };
+          return { month: key, label: label, percentage: pct, onTime: m.onTime, late: m.late, absent: m.absent, notPresent: m.notPresent, cuti: m.cuti, izin: m.izin, sakit: m.sakit, libur: m.libur, total: total };
         });
     }
 

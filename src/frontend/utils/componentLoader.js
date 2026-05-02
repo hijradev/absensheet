@@ -50,6 +50,10 @@ export class ComponentLoader {
                     const { Profile } = await import('../components/Profile.js');
                     ComponentClass = Profile;
                     break;
+                case 'leaves':
+                    const { LeaveManagement } = await import('../components/LeaveManagement.js');
+                    ComponentClass = LeaveManagement;
+                    break;
                 default:
                     throw new Error(`Unknown component: ${componentName}`);
             }
