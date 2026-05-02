@@ -15,13 +15,22 @@ export class Settings {
                 latitude: '',
                 longitude: '',
                 radius: ''
+            },
+            monthlyEmail: {
+                enabled: false,
+                recipient: '',
+                scheduleDay: '1',
+                scheduleHour: '9',
+                scheduleMinute: '0'
             }
         };
         this.loading = {
             organizationName: false,
             language: false,
-            geofence: false
+            geofence: false,
+            monthlyEmail: false
         };
+        this.deliveryLogs = [];
         this.pageLoading = true;
     }
 
@@ -51,12 +60,51 @@ export class Settings {
             }
             // If geofence settings fail to load, keep defaults (empty fields, disabled)
 
+            // Load email settings and delivery logs independently so failures don't block the page
+            await this.loadEmailSettings();
+
             this.pageLoading = false;
             this.render();
         } catch (error) {
             this.pageLoading = false;
             this.setState({ errorMessage: t('failedToLoadSettings') });
             this.render();
+        }
+    }
+
+    /**
+     * Fetch current email configuration from the backend and update UI state.
+     * Also loads delivery logs. Handles loading states and error conditions
+     * gracefully — failures keep the existing defaults rather than breaking the page.
+     * Requirements: 1.3, 5.4
+     */
+    async loadEmailSettings() {
+        this.loading.monthlyEmail = true;
+
+        try {
+            const [emailRes] = await Promise.all([
+                this.callGas('getEmailSettings', this.state.token)
+            ]);
+
+            if (emailRes && emailRes.status === 'success') {
+                const ed = emailRes.data;
+                this.currentSettings.monthlyEmail = {
+                    enabled: ed.enabled || false,
+                    recipient: ed.recipient || '',
+                    scheduleDay:    ed.scheduleDay    !== null && ed.scheduleDay    !== undefined ? String(ed.scheduleDay)    : '1',
+                    scheduleHour:   ed.scheduleHour   !== null && ed.scheduleHour   !== undefined ? String(ed.scheduleHour)   : '9',
+                    scheduleMinute: ed.scheduleMinute !== null && ed.scheduleMinute !== undefined ? String(ed.scheduleMinute) : '0'
+                };
+            }
+            // If email settings fail to load, keep defaults silently
+
+            // Load delivery logs as part of the email settings initialisation
+            await this.loadDeliveryLogs();
+        } catch (error) {
+            // Non-fatal: email settings are optional for the page to function
+            console.error('Failed to load email settings:', error);
+        } finally {
+            this.loading.monthlyEmail = false;
         }
     }
 
@@ -244,7 +292,7 @@ export class Settings {
                                             <circle cx="12" cy="11" r="3"/>
                                             <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
                                         </svg>
-                                        Geofence Settings
+                                        ${t('enableGeofencing')}
                                     </h3>
                                 </div>
                                 <div class="card-body">
@@ -254,17 +302,17 @@ export class Settings {
                                             <label class="form-check form-switch">
                                                 <input class="form-check-input" type="checkbox" id="geofence-enabled"
                                                        ${this.currentSettings.geofence.enabled ? 'checked' : ''}>
-                                                <span class="form-check-label">Enable geofencing</span>
+                                                <span class="form-check-label">${t('enableGeofencing')}</span>
                                             </label>
                                             <div class="form-hint" id="geofence-enabled-hint">
-                                                When enabled, employees must be within the configured radius to clock in or out.
+                                                ${t('geofenceEnabledHint')}
                                             </div>
                                         </div>
 
                                         <div class="row g-3">
                                             <!-- Latitude -->
                                             <div class="col-12 col-md-4">
-                                                <label class="form-label" for="geofence-latitude">Latitude</label>
+                                                <label class="form-label" for="geofence-latitude">${t('latitude')}</label>
                                                 <input type="number"
                                                        class="form-control"
                                                        id="geofence-latitude"
@@ -275,13 +323,13 @@ export class Settings {
                                                        placeholder="e.g. -6.200000"
                                                        aria-describedby="geofence-latitude-hint">
                                                 <div class="form-hint" id="geofence-latitude-hint">
-                                                    Decimal degrees, −90 to 90.
+                                                    ${t('latitudeHint')}
                                                 </div>
                                             </div>
 
                                             <!-- Longitude -->
                                             <div class="col-12 col-md-4">
-                                                <label class="form-label" for="geofence-longitude">Longitude</label>
+                                                <label class="form-label" for="geofence-longitude">${t('longitude')}</label>
                                                 <input type="number"
                                                        class="form-control"
                                                        id="geofence-longitude"
@@ -292,13 +340,13 @@ export class Settings {
                                                        placeholder="e.g. 106.816666"
                                                        aria-describedby="geofence-longitude-hint">
                                                 <div class="form-hint" id="geofence-longitude-hint">
-                                                    Decimal degrees, −180 to 180.
+                                                    ${t('longitudeHint')}
                                                 </div>
                                             </div>
 
                                             <!-- Radius -->
                                             <div class="col-12 col-md-4">
-                                                <label class="form-label" for="geofence-radius">Radius</label>
+                                                <label class="form-label" for="geofence-radius">${t('radius')}</label>
                                                 <input type="number"
                                                        class="form-control"
                                                        id="geofence-radius"
@@ -308,7 +356,7 @@ export class Settings {
                                                        placeholder="meters"
                                                        aria-describedby="geofence-radius-hint">
                                                 <div class="form-hint" id="geofence-radius-hint">
-                                                    Allowed radius in meters (10–50,000).
+                                                    ${t('radiusHint')}
                                                 </div>
                                             </div>
                                         </div>
@@ -323,12 +371,12 @@ export class Settings {
                                                     <path d="M2 12h2"/>
                                                     <path d="M20 12h2"/>
                                                 </svg>
-                                                Use My Current Location
+                                                ${t('useMyCurrentLocation')}
                                             </button>
                                             <button type="submit" class="btn btn-primary" ${this.loading.geofence ? 'disabled' : ''}>
                                                 ${this.loading.geofence ? `
                                                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                                    Saving…
+                                                    ${t('savingEllipsis')}
                                                 ` : `
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -341,6 +389,157 @@ export class Settings {
                                             </button>
                                         </div>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Report Email Settings -->
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <rect x="3" y="5" width="18" height="14" rx="2"/>
+                                            <polyline points="3 7 12 13 21 7"/>
+                                        </svg>
+                                        ${t('enableAutomaticMonthlyEmails')}
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <form id="monthly-email-form">
+                                        <!-- Enable/Disable toggle -->
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="monthly-email-enabled"
+                                                       ${this.currentSettings.monthlyEmail.enabled ? 'checked' : ''}>
+                                                <span class="form-check-label">${t('enableAutomaticMonthlyEmails')}</span>
+                                            </label>
+                                            <div class="form-hint">
+                                                ${t('monthlyEmailEnabledHint')}
+                                            </div>
+                                        </div>
+
+                                        <!-- Email Recipient -->
+                                        <div class="mb-3">
+                                            <label class="form-label" for="monthly-email-recipient">${t('emailRecipient')}</label>
+                                            <input type="email"
+                                                   class="form-control"
+                                                   id="monthly-email-recipient"
+                                                   value="${this.escHtml(this.currentSettings.monthlyEmail.recipient)}"
+                                                   placeholder="admin@company.com"
+                                                   aria-describedby="monthly-email-recipient-hint">
+                                            <div class="form-hint" id="monthly-email-recipient-hint">
+                                                ${t('emailRecipientHint')}
+                                            </div>
+                                        </div>
+
+                                        <!-- Schedule Configuration -->
+                                        <div class="mb-3">
+                                            <label class="form-label">${t('schedule')}</label>
+                                            <div class="row g-2">
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="monthly-email-day">${t('dayOfMonth')}</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           id="monthly-email-day"
+                                                           value="${this.escHtml(this.currentSettings.monthlyEmail.scheduleDay)}"
+                                                           min="1"
+                                                           max="28"
+                                                           placeholder="1-28">
+                                                    <div class="form-hint">${t('dayOfMonth')} (1-28)</div>
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="monthly-email-hour">${t('hour')}</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           id="monthly-email-hour"
+                                                           value="${this.escHtml(this.currentSettings.monthlyEmail.scheduleHour)}"
+                                                           min="0"
+                                                           max="23"
+                                                           placeholder="0-23">
+                                                    <div class="form-hint">${t('hour')} (0-23)</div>
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="monthly-email-minute">${t('minute')}</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           id="monthly-email-minute"
+                                                           value="${this.escHtml(this.currentSettings.monthlyEmail.scheduleMinute)}"
+                                                           min="0"
+                                                           max="59"
+                                                           placeholder="0-59">
+                                                    <div class="form-hint">${t('minute')} (0-59)</div>
+                                                </div>
+                                            </div>
+                                            <div class="form-hint mt-2">
+                                                Reports will be sent on the specified day and time each month. If the day doesn't exist in a month, it will be sent on the last day of that month.
+                                            </div>
+                                        </div>
+
+                                        <!-- Action Buttons -->
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary" ${this.loading.monthlyEmail ? 'disabled' : ''}>
+                                                ${this.loading.monthlyEmail ? `
+                                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                    ${t('savingEllipsis')}
+                                                ` : `
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                        <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
+                                                        <circle cx="12" cy="14" r="2"/>
+                                                        <polyline points="14,4 14,8 8,8 8,4"/>
+                                                    </svg>
+                                                    ${t('save')}
+                                                `}
+                                            </button>
+                                            <button type="button" id="monthly-email-send-now-btn" class="btn btn-secondary">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                                    <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"/>
+                                                </svg>
+                                                Send Now
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <!-- Delivery Logs -->
+                                    <div class="mt-4">
+                                        <h4 class="card-title">Delivery Logs</h4>
+                                        <div class="table-responsive">
+                                            <table class="table table-vcenter card-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Timestamp</th>
+                                                        <th>Recipient</th>
+                                                        <th>Month/Year</th>
+                                                        <th>Status</th>
+                                                        <th>Type</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="delivery-logs-tbody">
+                                                    ${this.deliveryLogs.length === 0 ? `
+                                                        <tr>
+                                                            <td colspan="5" class="text-muted text-center">No delivery logs available</td>
+                                                        </tr>
+                                                    ` : this.deliveryLogs.map(log => `
+                                                        <tr>
+                                                            <td>${this.escHtml(log.timestamp)}</td>
+                                                            <td>${this.escHtml(log.recipient)}</td>
+                                                            <td>${this.escHtml(log.monthYear)}</td>
+                                                            <td>
+                                                                <span class="badge bg-${log.status === 'success' ? 'success' : 'danger'}">
+                                                                    ${this.escHtml(log.status)}
+                                                                </span>
+                                                            </td>
+                                                            <td>${this.escHtml(log.triggerType)}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -379,6 +578,51 @@ export class Settings {
         const useLocationBtn = document.getElementById('geofence-use-location-btn');
         if (useLocationBtn) {
             useLocationBtn.addEventListener('click', () => this.handleUseMyLocation());
+        }
+
+        // Monthly email form — submit and manual send
+        // Requirements: 1.1, 2.1, 6.1
+        const monthlyEmailForm = document.getElementById('monthly-email-form');
+        if (monthlyEmailForm) {
+            monthlyEmailForm.addEventListener('submit', (e) => this.handleEmailSettingsSave(e));
+        }
+
+        const sendNowBtn = document.getElementById('monthly-email-send-now-btn');
+        if (sendNowBtn) {
+            sendNowBtn.addEventListener('click', () => this.handleManualSend());
+        }
+
+        // Keep in-memory state in sync with the enable/disable toggle so that
+        // Requirement 5.5 (UI state consistency) is satisfied without requiring
+        // a full save first.
+        const enabledToggle = document.getElementById('monthly-email-enabled');
+        if (enabledToggle) {
+            enabledToggle.addEventListener('change', () => {
+                this.currentSettings.monthlyEmail.enabled = enabledToggle.checked;
+            });
+        }
+
+        // Mirror schedule control changes into in-memory state so that a
+        // subsequent manual send or re-render reflects the latest values.
+        const dayInput = document.getElementById('monthly-email-day');
+        if (dayInput) {
+            dayInput.addEventListener('change', () => {
+                this.currentSettings.monthlyEmail.scheduleDay = dayInput.value;
+            });
+        }
+
+        const hourInput = document.getElementById('monthly-email-hour');
+        if (hourInput) {
+            hourInput.addEventListener('change', () => {
+                this.currentSettings.monthlyEmail.scheduleHour = hourInput.value;
+            });
+        }
+
+        const minuteInput = document.getElementById('monthly-email-minute');
+        if (minuteInput) {
+            minuteInput.addEventListener('change', () => {
+                this.currentSettings.monthlyEmail.scheduleMinute = minuteInput.value;
+            });
         }
     }
 
@@ -494,12 +738,12 @@ export class Settings {
                     longitude: isNaN(longitude) ? '' : String(longitude),
                     radius:    isNaN(radius)    ? '' : String(radius)
                 };
-                this.showSuccess('Geofence settings saved successfully.');
+                this.showSuccess(t('organizationSettingsSaved'));
             } else {
-                this.showError(res?.message || 'Failed to save geofence settings.');
+                this.showError(res?.message || t('failedToSaveSettings'));
             }
         } catch (error) {
-            this.showError('Failed to save geofence settings.');
+            this.showError(t('failedToSaveSettings'));
         } finally {
             this.loading.geofence = false;
             this.render();
@@ -577,6 +821,146 @@ export class Settings {
         );
     }
 
+    /**
+     * Handle email configuration form submission.
+     * Validates email format and schedule parameters on the frontend before
+     * submitting to the backend. Updates UI state and shows success/error messages.
+     * Requirements: 1.2, 1.4, 1.5, 2.2, 2.6, 2.7
+     */
+    async handleEmailSettingsSave(e) {
+        e.preventDefault();
+
+        const enabledInput   = document.getElementById('monthly-email-enabled');
+        const recipientInput = document.getElementById('monthly-email-recipient');
+        const dayInput       = document.getElementById('monthly-email-day');
+        const hourInput      = document.getElementById('monthly-email-hour');
+        const minuteInput    = document.getElementById('monthly-email-minute');
+
+        const enabled        = enabledInput   ? enabledInput.checked          : false;
+        const recipient      = recipientInput ? recipientInput.value.trim()   : '';
+        const scheduleDay    = dayInput       ? dayInput.value                : '1';
+        const scheduleHour   = hourInput      ? hourInput.value               : '9';
+        const scheduleMinute = minuteInput    ? minuteInput.value             : '0';
+
+        // Requirement 1.2 / 1.4: validate email format
+        if (enabled && !recipient) {
+            this.showError('Email recipient is required when automatic emails are enabled.');
+            return;
+        }
+
+        if (recipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+            this.showError('Please enter a valid email address.');
+            return;
+        }
+
+        // Requirement 2.2 / 2.6 / 2.7: validate schedule parameters
+        const day    = parseInt(scheduleDay,    10);
+        const hour   = parseInt(scheduleHour,   10);
+        const minute = parseInt(scheduleMinute, 10);
+
+        if (isNaN(day) || day < 1 || day > 28) {
+            this.showError('Day must be between 1 and 28.');
+            return;
+        }
+
+        if (isNaN(hour) || hour < 0 || hour > 23) {
+            this.showError('Hour must be between 0 and 23.');
+            return;
+        }
+
+        if (isNaN(minute) || minute < 0 || minute > 59) {
+            this.showError('Minute must be between 0 and 59.');
+            return;
+        }
+
+        this.loading.monthlyEmail = true;
+        this.render();
+
+        try {
+            const res = await this.callGas('saveEmailSettings', this.state.token, {
+                enabled,
+                recipient,
+                scheduleDay:    day,
+                scheduleHour:   hour,
+                scheduleMinute: minute
+            });
+
+            if (res && res.status === 'success') {
+                this.currentSettings.monthlyEmail = {
+                    enabled,
+                    recipient,
+                    scheduleDay:    String(day),
+                    scheduleHour:   String(hour),
+                    scheduleMinute: String(minute)
+                };
+                this.showSuccess('Monthly email settings saved successfully.');
+            } else {
+                this.showError(res?.message || 'Failed to save monthly email settings.');
+            }
+        } catch (error) {
+            this.showError('Failed to save monthly email settings.');
+        } finally {
+            this.loading.monthlyEmail = false;
+            this.render();
+        }
+    }
+
+    /** Alias kept for backward compatibility with existing event listener wiring. */
+    async handleMonthlyEmailSave(e) {
+        return this.handleEmailSettingsSave(e);
+    }
+
+    async handleManualSend() {
+        const sendNowBtn = document.getElementById('monthly-email-send-now-btn');
+        if (sendNowBtn) {
+            sendNowBtn.disabled = true;
+            sendNowBtn.innerHTML = `
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                Sending…
+            `;
+        }
+
+        try {
+            const res = await this.callGas('sendManualMonthlyReport', this.state.token);
+
+            if (res && res.status === 'success') {
+                this.showSuccess('Monthly report sent successfully.');
+                // Reload delivery logs to show the new entry
+                await this.loadDeliveryLogs();
+            } else {
+                this.showError(res?.message || 'Failed to send monthly report.');
+            }
+        } catch (error) {
+            this.showError('Failed to send monthly report.');
+        } finally {
+            if (sendNowBtn) {
+                sendNowBtn.disabled = false;
+                sendNowBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                        <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"/>
+                    </svg>
+                    Send Now
+                `;
+            }
+        }
+    }
+
+    async loadDeliveryLogs() {
+        try {
+            const res = await this.callGas('getEmailDeliveryLogs', this.state.token);
+
+            if (res && res.status === 'success') {
+                this.deliveryLogs = res.data || [];
+                this.render();
+            }
+        } catch (error) {
+            // Silently fail - logs are not critical
+            console.error('Failed to load delivery logs:', error);
+        }
+    }
+
     showSuccess(message) {
         this.setState({ 
             successMessage: message, 
@@ -612,6 +996,16 @@ export class Settings {
     }
 
     destroy() {
-        // Cleanup if needed
+        // Mark the instance as destroyed so any in-flight async operations
+        // (e.g. pending callGas responses) can bail out early and avoid
+        // updating state on an unmounted component.
+        this._destroyed = true;
+
+        // Clear the rendered DOM so event listeners attached to child elements
+        // are garbage-collected along with those elements.
+        const container = document.getElementById('admin-content');
+        if (container) {
+            container.innerHTML = '';
+        }
     }
 }

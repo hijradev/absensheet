@@ -97,12 +97,12 @@ export class UserManagement {
                 `<tr><td colspan="5"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
             ).join('');
         } else if (!adminManagement.employees || adminManagement.employees.length === 0) {
-            table.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No users found.</td></tr>';
+            table.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">${this.t('noUsersFound')}</td></tr>`;
         } else {
             const paginatedUsers = this.getPaginatedUsers();
             
             if (paginatedUsers.length === 0) {
-                table.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No users match the current filter.</td></tr>';
+                table.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">${this.t('noUsersMatchFilter')}</td></tr>`;
             } else {
                 table.innerHTML = paginatedUsers.map(u => `
                     <tr>
@@ -313,7 +313,7 @@ export class UserManagement {
     exportToCSV() {
         const users = this.getFilteredUsers();
         if (users.length === 0) {
-            alert('No data to export');
+            alert(this.t('noDataToExport'));
             return;
         }
 
@@ -345,7 +345,7 @@ export class UserManagement {
     printUsers() {
         const users = this.getFilteredUsers();
         if (users.length === 0) {
-            alert('No data to print');
+            alert(this.t('noDataToPrint'));
             return;
         }
 

@@ -315,7 +315,7 @@ export class Reports {
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
-            this.setState({ errorMessage: 'Pop-up blocked. Please allow pop-ups to print.' });
+            this.setState({ errorMessage: t('popupBlocked') });
             return;
         }
 

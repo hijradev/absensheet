@@ -1993,10 +1993,26 @@ const startLocationAcquisition = async () => {
             locationErrorMessage: ''
         });
     } catch (errMsg) {
+        // Translate GeolocationService error messages
+        let translatedError = 'Unable to determine your location.';
+        if (typeof errMsg === 'string') {
+            if (errMsg.includes('Location services not supported')) {
+                translatedError = t('locationServicesNotSupported');
+            } else if (errMsg.includes('Location permission denied')) {
+                translatedError = t('locationPermissionDenied');
+            } else if (errMsg.includes('Unable to determine your location')) {
+                translatedError = t('unableToDetermineLocation');
+            } else if (errMsg.includes('Location request timed out')) {
+                translatedError = t('locationRequestTimeout');
+            } else {
+                translatedError = errMsg;
+            }
+        }
+        
         setState({
             locationStatus: 'error',
             locationPayload: null,
-            locationErrorMessage: typeof errMsg === 'string' ? errMsg : 'Unable to determine your location.'
+            locationErrorMessage: translatedError
         });
     }
 };

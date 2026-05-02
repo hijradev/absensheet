@@ -447,6 +447,50 @@ export const translations = {
         failedToLoadSettings: 'Failed to load settings',
         failedToSaveSettings: 'Failed to save settings',
 
+        // New translations for untranslated strings
+        // User Management
+        noUsersFound: 'No users found',
+        noDataToExport: 'No data to export',
+        noDataToPrint: 'No data to print',
+        
+        // Daily Attendance
+        selectDateAndLoad: 'Select a date and click Load to view attendance',
+        adminEntry: 'Admin Entry',
+        inZone: 'In Zone',
+        outZone: 'Out Zone',
+        noLocationData: 'N/A',
+        
+        // Geolocation
+        locationServicesNotSupported: 'Location services not supported by this browser',
+        locationPermissionDenied: 'Location permission denied. Please allow location access and try again',
+        unableToDetermineLocation: 'Unable to determine your location. Please check your GPS signal',
+        locationRequestTimeout: 'Location request timed out. Please try again',
+        
+        // Geofence Settings
+        enableGeofencing: 'Enable geofencing',
+        geofenceEnabledHint: 'When enabled, employees must be within the configured radius to clock in or out',
+        latitude: 'Latitude',
+        latitudeHint: 'Decimal degrees, −90 to 90',
+        longitude: 'Longitude',
+        longitudeHint: 'Decimal degrees, −180 to 180',
+        radius: 'Radius',
+        radiusHint: 'Allowed radius in meters (10–50,000)',
+        useMyCurrentLocation: 'Use My Current Location',
+        
+        // Monthly Report Email Settings
+        enableAutomaticMonthlyEmails: 'Enable automatic monthly report emails',
+        monthlyEmailEnabledHint: 'When enabled, monthly attendance reports will be automatically sent to the configured email address',
+        emailRecipient: 'Email Recipient',
+        emailRecipientHint: 'Email address where monthly reports will be sent',
+        schedule: 'Schedule',
+        dayOfMonth: 'Day of Month',
+        hour: 'Hour',
+        minute: 'Minute',
+        
+        // General
+        savingEllipsis: 'Saving…',
+        popupBlocked: 'Pop-up blocked. Please allow pop-ups to print',
+
         // Profile
         profile: {
             myProfile: 'My Profile',
@@ -930,7 +974,51 @@ export const translations = {
             failedToLoad: 'Gagal memuat profil.',
             passwordsMatch: 'Kata sandi cocok',
             backToDashboard: 'Kembali ke Dashboard'
-        }
+        },
+
+        // New translations for untranslated strings
+        // User Management
+        noUsersFound: 'Tidak ada pengguna ditemukan',
+        noDataToExport: 'Tidak ada data untuk diekspor',
+        noDataToPrint: 'Tidak ada data untuk dicetak',
+        
+        // Daily Attendance
+        selectDateAndLoad: 'Pilih tanggal dan klik Muat untuk melihat absensi',
+        adminEntry: 'Entri Admin',
+        inZone: 'Dalam Zona',
+        outZone: 'Luar Zona',
+        noLocationData: 'T/A',
+        
+        // Geolocation
+        locationServicesNotSupported: 'Layanan lokasi tidak didukung oleh browser ini',
+        locationPermissionDenied: 'Izin lokasi ditolak. Harap izinkan akses lokasi dan coba lagi',
+        unableToDetermineLocation: 'Tidak dapat menentukan lokasi Anda. Harap periksa sinyal GPS Anda',
+        locationRequestTimeout: 'Permintaan lokasi waktu habis. Harap coba lagi',
+        
+        // Geofence Settings
+        enableGeofencing: 'Aktifkan Geofencing',
+        geofenceEnabledHint: 'Saat diaktifkan, karyawan harus berada dalam radius yang dikonfigurasi untuk absen masuk atau keluar',
+        latitude: 'Lintang',
+        latitudeHint: 'Derajat desimal, −90 hingga 90',
+        longitude: 'Bujur',
+        longitudeHint: 'Derajat desimal, −180 hingga 180',
+        radius: 'Radius',
+        radiusHint: 'Radius yang diizinkan dalam meter (10–50,000)',
+        useMyCurrentLocation: 'Gunakan Lokasi Saya Saat Ini',
+        
+        // Monthly Report Email Settings
+        enableAutomaticMonthlyEmails: 'Aktifkan email laporan bulanan otomatis',
+        monthlyEmailEnabledHint: 'Saat diaktifkan, laporan absensi bulanan akan dikirim secara otomatis ke alamat email yang dikonfigurasi',
+        emailRecipient: 'Penerima Email',
+        emailRecipientHint: 'Alamat email tempat laporan bulanan akan dikirim',
+        schedule: 'Jadwal',
+        dayOfMonth: 'Hari dalam Bulan',
+        hour: 'Jam',
+        minute: 'Menit',
+        
+        // General
+        savingEllipsis: 'Menyimpan…',
+        popupBlocked: 'Pop-up diblokir. Harap izinkan pop-up untuk mencetak'
     }
 };
 
