@@ -1,4 +1,20 @@
 // Code.gs
+//
+// GAS Router / Entry Point
+//
+// In Google Apps Script, every top-level function defined in any .gs file is
+// automatically callable from the client via google.script.run — no explicit
+// export or registration is required.
+//
+// Attendance functions exposed to the client (defined in Absensi.gs):
+//   checkIn(token, locationPayload)                    — employee check-in with optional GPS payload
+//   checkOut(token, locationPayload)                   — employee check-out with optional GPS payload
+//   processAttendanceByQR(employeeId, locationPayload) — QR-code attendance with optional GPS payload
+//
+// Geofence settings functions (defined in Settings.gs):
+//   getGeofenceSettings(token)
+//   saveGeofenceSettings(token, data)
+//
 function doGet(e) {
   // We use evaluate() to allow templating if needed, 
   // but vite-plugin-singlefile creates a static index.html which we output directly.

@@ -1,4 +1,22 @@
 // Absensi.gs
+//
+// Attendance_Data column schema:
+//   A (0): date
+//   B (1): employeeId
+//   C (2): checkInTime
+//   D (3): checkInStatus
+//   E (4): checkOutTime
+//   F (5): checkOutStatus
+//   G (6): checkInLat       — decimal degrees or ""
+//   H (7): checkInLng       — decimal degrees or ""
+//   I (8): checkInDistance  — meters (integer) or ""
+//   J (9): checkOutLat      — decimal degrees or ""
+//   K (10): checkOutLng     — decimal degrees or ""
+//   L (11): checkOutDistance — meters (integer) or ""
+//   M (12): source          — "employee" | "qr" | "admin" | ""
+//
+// Backward compatibility: rows created before geofencing have only columns A–F.
+// All read paths treat missing indices (row.length < 13) as "".
 
 function getTodayStr() {
   const d = new Date();
@@ -10,10 +28,20 @@ function getTodayStr() {
  * Uses cached Employees and Shifts to avoid redundant sheet reads.
  * Before: 3 SpreadsheetApp reads per call.
  * After:  1 read (Attendance_Data) + cache hits for Employees & Shifts.
+ *
+ * @param {string} token           - Employee auth token
+ * @param {string} action          - "IN" or "OUT"
+ * @param {Object} [locationPayload] - { latitude, longitude, accuracy } from browser Geolocation API
  */
-function processAttendance(token, action) {
+function processAttendance(token, action, locationPayload) {
   const user = verifyToken(token);
   if (!user) return errorResponse("Invalid or expired session. Please login again.");
+
+  // --- Geofence validation (runs before any sheet writes) ---
+  const locResult = validateLocation(locationPayload);
+  if (!locResult.valid) {
+    return errorResponse(locResult.error);
+  }
 
   const props = getProps();
   const currentYear = new Date().getFullYear();
@@ -50,13 +78,24 @@ function processAttendance(token, action) {
     }
   }
 
+  // Extract location values from the validated payload (empty string when skipped/no payload)
+  const locLat      = (locationPayload && !locResult.skipped) ? locationPayload.latitude  : "";
+  const locLng      = (locationPayload && !locResult.skipped) ? locationPayload.longitude : "";
+  const locDistance = (locationPayload && !locResult.skipped) ? locResult.distance        : "";
+
   if (action === 'IN') {
     if (rowIndex !== -1) return errorResponse("Already checked in today.");
 
     const shiftStart = parseTime(shiftData.start_time);
     const status = nowTime > shiftStart ? "Terlambat" : "Tepat Waktu";
 
-    appendSheetData(attendanceDbId, "Attendance_Data", [todayStr, user.userId, timeStr, status, "", ""]);
+    // Columns: A–F (core), G–I (check-in location), J–L (check-out location, empty), M (source)
+    appendSheetData(attendanceDbId, "Attendance_Data", [
+      todayStr, user.userId, timeStr, status, "", "",
+      locLat, locLng, locDistance,
+      "", "", "",
+      "employee"
+    ]);
     logActivity(user.userId, "Check In");
     return successResponse({ time: timeStr, status: status }, "Check In Successful");
 
@@ -74,6 +113,14 @@ function processAttendance(token, action) {
 
     existingRow[4] = timeStr;
     existingRow[5] = status;
+    // Populate check-out location columns J–L (indices 9–11)
+    existingRow[9]  = locLat;
+    existingRow[10] = locLng;
+    existingRow[11] = locDistance;
+    // Preserve source if already set; otherwise mark as "employee"
+    if (!existingRow[12]) {
+      existingRow[12] = "employee";
+    }
     updateSheetRow(attendanceDbId, "Attendance_Data", rowIndex, existingRow);
     logActivity(user.userId, "Check Out");
     return successResponse({ time: timeStr, status: status }, "Check Out Successful");
@@ -82,12 +129,12 @@ function processAttendance(token, action) {
   return errorResponse("Invalid action.");
 }
 
-function checkIn(token) {
-  return processAttendance(token, 'IN');
+function checkIn(token, locationPayload) {
+  return processAttendance(token, 'IN', locationPayload);
 }
 
-function checkOut(token) {
-  return processAttendance(token, 'OUT');
+function checkOut(token, locationPayload) {
+  return processAttendance(token, 'OUT', locationPayload);
 }
 
 /**
@@ -143,21 +190,35 @@ function getDailyAttendance(token, dateStr) {
       const shift = shiftMap[emp.shift_id] || {};
       const pos = posMap[emp.jabatan_id] || {};
 
+      // Helper: read a column value, returning null if the index is missing or empty string
+      const row = attData[i];
+      const colOrNull = (idx) => {
+        const v = row.length > idx ? row[idx] : "";
+        return (v === "" || v === null || v === undefined) ? null : v;
+      };
+
       records.push({
-        employeeId:     empId,
-        employeeName:   emp.name || "-",
-        position:       pos.name || "-",
-        shiftId:        emp.shift_id || "-",
-        shiftStart:     shift.start_time || "-",
-        shiftEnd:       shift.end_time || "-",
-        checkInTime:    attData[i][2] instanceof Date
-          ? Utilities.formatDate(attData[i][2], Session.getScriptTimeZone(), "HH:mm:ss")
-          : String(attData[i][2] || ""),
-        checkInStatus:  String(attData[i][3] || ""),
-        checkOutTime:   attData[i][4] instanceof Date
-          ? Utilities.formatDate(attData[i][4], Session.getScriptTimeZone(), "HH:mm:ss")
-          : String(attData[i][4] || ""),
-        checkOutStatus: String(attData[i][5] || "")
+        employeeId:          empId,
+        employeeName:        emp.name || "-",
+        position:            pos.name || "-",
+        shiftId:             emp.shift_id || "-",
+        shiftStart:          shift.start_time || "-",
+        shiftEnd:            shift.end_time || "-",
+        checkInTime:         row[2] instanceof Date
+          ? Utilities.formatDate(row[2], Session.getScriptTimeZone(), "HH:mm:ss")
+          : String(row[2] || ""),
+        checkInStatus:       String(row[3] || ""),
+        checkOutTime:        row[4] instanceof Date
+          ? Utilities.formatDate(row[4], Session.getScriptTimeZone(), "HH:mm:ss")
+          : String(row[4] || ""),
+        checkOutStatus:      String(row[5] || ""),
+        checkInLat:          colOrNull(6),
+        checkInLng:          colOrNull(7),
+        checkInDistance:     colOrNull(8),
+        checkOutLat:         colOrNull(9),
+        checkOutLng:         colOrNull(10),
+        checkOutDistance:    colOrNull(11),
+        source:              colOrNull(12)
       });
     }
 
@@ -167,16 +228,23 @@ function getDailyAttendance(token, dateStr) {
         const shift = shiftMap[emp.shift_id] || {};
         const pos = posMap[emp.jabatan_id] || {};
         records.push({
-          employeeId:     emp.id,
-          employeeName:   emp.name || "-",
-          position:       pos.name || "-",
-          shiftId:        emp.shift_id || "-",
-          shiftStart:     shift.start_time || "-",
-          shiftEnd:       shift.end_time || "-",
-          checkInTime:    "",
-          checkInStatus:  "Tidak Hadir",
-          checkOutTime:   "",
-          checkOutStatus: ""
+          employeeId:       emp.id,
+          employeeName:     emp.name || "-",
+          position:         pos.name || "-",
+          shiftId:          emp.shift_id || "-",
+          shiftStart:       shift.start_time || "-",
+          shiftEnd:         shift.end_time || "-",
+          checkInTime:      "",
+          checkInStatus:    "Tidak Hadir",
+          checkOutTime:     "",
+          checkOutStatus:   "",
+          checkInLat:       null,
+          checkInLng:       null,
+          checkInDistance:  null,
+          checkOutLat:      null,
+          checkOutLng:      null,
+          checkOutDistance: null,
+          source:           null
         });
       }
     });
@@ -274,22 +342,36 @@ function getDailyAttendanceRange(token, startDate, endDate) {
         const shift = shiftMap[emp.shift_id] || {};
         const pos   = posMap[emp.jabatan_id] || {};
 
+        // Helper: read a column value, returning null if the index is missing or empty string
+        const row = attData[i];
+        const colOrNull = (idx) => {
+          const v = row.length > idx ? row[idx] : "";
+          return (v === "" || v === null || v === undefined) ? null : v;
+        };
+
         records.push({
-          date:           rowDate,
-          employeeId:     empId,
-          employeeName:   emp.name || "-",
-          position:       pos.name || "-",
-          shiftId:        emp.shift_id || "-",
-          shiftStart:     shift.start_time || "-",
-          shiftEnd:       shift.end_time || "-",
-          checkInTime:    attData[i][2] instanceof Date
-            ? Utilities.formatDate(attData[i][2], Session.getScriptTimeZone(), "HH:mm:ss")
-            : String(attData[i][2] || ""),
-          checkInStatus:  String(attData[i][3] || ""),
-          checkOutTime:   attData[i][4] instanceof Date
-            ? Utilities.formatDate(attData[i][4], Session.getScriptTimeZone(), "HH:mm:ss")
-            : String(attData[i][4] || ""),
-          checkOutStatus: String(attData[i][5] || "")
+          date:             rowDate,
+          employeeId:       empId,
+          employeeName:     emp.name || "-",
+          position:         pos.name || "-",
+          shiftId:          emp.shift_id || "-",
+          shiftStart:       shift.start_time || "-",
+          shiftEnd:         shift.end_time || "-",
+          checkInTime:      row[2] instanceof Date
+            ? Utilities.formatDate(row[2], Session.getScriptTimeZone(), "HH:mm:ss")
+            : String(row[2] || ""),
+          checkInStatus:    String(row[3] || ""),
+          checkOutTime:     row[4] instanceof Date
+            ? Utilities.formatDate(row[4], Session.getScriptTimeZone(), "HH:mm:ss")
+            : String(row[4] || ""),
+          checkOutStatus:   String(row[5] || ""),
+          checkInLat:       colOrNull(6),
+          checkInLng:       colOrNull(7),
+          checkInDistance:  colOrNull(8),
+          checkOutLat:      colOrNull(9),
+          checkOutLng:      colOrNull(10),
+          checkOutDistance: colOrNull(11),
+          source:           colOrNull(12)
         });
       }
     }
@@ -301,17 +383,24 @@ function getDailyAttendanceRange(token, startDate, endDate) {
           const shift = shiftMap[emp.shift_id] || {};
           const pos   = posMap[emp.jabatan_id] || {};
           records.push({
-            date:           d,
-            employeeId:     emp.id,
-            employeeName:   emp.name || "-",
-            position:       pos.name || "-",
-            shiftId:        emp.shift_id || "-",
-            shiftStart:     shift.start_time || "-",
-            shiftEnd:       shift.end_time || "-",
-            checkInTime:    "",
-            checkInStatus:  "Tidak Hadir",
-            checkOutTime:   "",
-            checkOutStatus: ""
+            date:             d,
+            employeeId:       emp.id,
+            employeeName:     emp.name || "-",
+            position:         pos.name || "-",
+            shiftId:          emp.shift_id || "-",
+            shiftStart:       shift.start_time || "-",
+            shiftEnd:         shift.end_time || "-",
+            checkInTime:      "",
+            checkInStatus:    "Tidak Hadir",
+            checkOutTime:     "",
+            checkOutStatus:   "",
+            checkInLat:       null,
+            checkInLng:       null,
+            checkInDistance:  null,
+            checkOutLat:      null,
+            checkOutLng:      null,
+            checkOutDistance: null,
+            source:           null
           });
         }
       });
@@ -407,14 +496,19 @@ function saveManualAttendance(token, data) {
       checkInTime  || "",
       checkInStatus,
       checkOutTime || "",
-      checkOutStatus || ""
+      checkOutStatus || "",
+      "", "", "",   // G–I: checkInLat, checkInLng, checkInDistance (not set by admin)
+      "", "", "",   // J–L: checkOutLat, checkOutLng, checkOutDistance (not set by admin)
+      "admin"       // M: source
     ];
 
     if (rowIndex === -1) {
       appendSheetData(attendanceDbId, "Attendance_Data", rowData);
       logActivity(admin.userId, "Manual Attendance Added: " + employeeId + " on " + date);
     } else {
-      // Preserve existing row array length — update in place
+      // Preserve existing row array length — update in place.
+      // For pre-geofencing rows (length < 13), explicitly fill missing indices
+      // 6–11 with "" so setValues never receives undefined/sparse entries.
       const existingRow = attData[rowIndex - 1];
       existingRow[0] = date;
       existingRow[1] = employeeId.trim();
@@ -422,6 +516,14 @@ function saveManualAttendance(token, data) {
       existingRow[3] = checkInStatus;
       existingRow[4] = checkOutTime || "";
       existingRow[5] = checkOutStatus || "";
+      // Preserve existing location columns G–L (indices 6–11).
+      // If the row is a pre-geofencing row (fewer than 13 columns), fill the
+      // missing location indices with "" rather than leaving them sparse/undefined.
+      for (let col = 6; col <= 11; col++) {
+        if (existingRow[col] === undefined) existingRow[col] = "";
+      }
+      // Always stamp source as "admin" (index 12)
+      existingRow[12] = "admin";
       updateSheetRow(attendanceDbId, "Attendance_Data", rowIndex, existingRow);
       logActivity(admin.userId, "Manual Attendance Updated: " + employeeId + " on " + date);
     }
@@ -555,12 +657,19 @@ function getManualAttendanceRecords(token, employeeId, startDate, endDate) {
 /**
  * Process attendance via QR code scan (no authentication required).
  * Automatically determines check-in vs check-out based on today's record.
- * @param {string} employeeId - Employee ID from QR code
+ * @param {string} employeeId      - Employee ID from QR code
+ * @param {Object} [locationPayload] - { latitude, longitude, accuracy } from browser Geolocation API
  */
-function processAttendanceByQR(employeeId) {
+function processAttendanceByQR(employeeId, locationPayload) {
   try {
     if (!employeeId || typeof employeeId !== 'string') {
       return errorResponse("Invalid employee ID.");
+    }
+
+    // --- Geofence validation (runs before any sheet writes) ---
+    const locResult = validateLocation(locationPayload);
+    if (!locResult.valid) {
+      return errorResponse(locResult.error);
     }
 
     const props = getProps();
@@ -598,13 +707,24 @@ function processAttendanceByQR(employeeId) {
       }
     }
 
+    // Extract location values from the validated payload (empty string when skipped/no payload)
+    const locLat      = (locationPayload && !locResult.skipped) ? locationPayload.latitude  : "";
+    const locLng      = (locationPayload && !locResult.skipped) ? locationPayload.longitude : "";
+    const locDistance = (locationPayload && !locResult.skipped) ? locResult.distance        : "";
+
     // Determine action: if no record or already checked out, do check-in; otherwise check-out
     if (rowIndex === -1) {
       // Check In
       const shiftStart = parseTime(shiftData.start_time);
       const status = nowTime > shiftStart ? "Terlambat" : "Tepat Waktu";
 
-      appendSheetData(attendanceDbId, "Attendance_Data", [todayStr, employeeId, timeStr, status, "", ""]);
+      // Columns: A–F (core), G–I (check-in location), J–L (check-out location, empty), M (source)
+      appendSheetData(attendanceDbId, "Attendance_Data", [
+        todayStr, employeeId, timeStr, status, "", "",
+        locLat, locLng, locDistance,
+        "", "", "",
+        "qr"
+      ]);
       logActivity(employeeId, "Check In (QR)");
       return successResponse({ 
         action: "checkin", 
@@ -627,6 +747,14 @@ function processAttendanceByQR(employeeId) {
 
       existingRow[4] = timeStr;
       existingRow[5] = status;
+      // Populate check-out location columns J–L (indices 9–11)
+      existingRow[9]  = locLat;
+      existingRow[10] = locLng;
+      existingRow[11] = locDistance;
+      // Preserve source if already set; otherwise mark as "qr"
+      if (!existingRow[12]) {
+        existingRow[12] = "qr";
+      }
       updateSheetRow(attendanceDbId, "Attendance_Data", rowIndex, existingRow);
       logActivity(employeeId, "Check Out (QR)");
       return successResponse({ 
