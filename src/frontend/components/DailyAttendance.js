@@ -82,14 +82,14 @@ export class DailyAttendance {
             if (dailyAttendanceError) {
                 table.innerHTML = `<tr><td colspan="9" class="text-center py-5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-danger" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" /><path d="M12 16h.01" /></svg>
-                    <p class="text-danger fw-semibold mb-1">Failed to load attendance</p>
+                    <p class="text-danger fw-semibold mb-1">${this.t('failedLoadAttendance')}</p>
                     <p class="text-muted small mb-3">${this.escHtml(dailyAttendanceError)}</p>
-                    <button class="btn btn-sm btn-primary js-att-retry">Retry</button>
+                    <button class="btn btn-sm btn-primary js-att-retry">${this.t('retry')}</button>
                 </td></tr>`;
             } else {
                 table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /></svg>
-                    Select a date and click load to view attendance
+                    ${this.t('selectDateAndLoad')}
                 </td></tr>`;
             }
             this.renderPagination(0, 0);
@@ -132,7 +132,7 @@ export class DailyAttendance {
         }
 
         if (total === 0) {
-            table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No records match the current filter.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">${this.t('noRecordsMatchCurrentFilter')}</td></tr>`;
             this.renderPagination(0, 0);
             return;
         }
@@ -252,9 +252,9 @@ export class DailyAttendance {
     locationBadge(record, configuredRadius) {
         // Admin manual entry — neutral indicator
         if (record.source === 'admin') {
-            return `<span class="badge bg-secondary-lt text-secondary" aria-label="Admin Entry">
+            return `<span class="badge bg-secondary-lt text-secondary" aria-label="${this.t('adminEntry')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
-                Admin Entry
+                ${this.t('adminEntry')}
             </span>`;
         }
 
@@ -269,21 +269,21 @@ export class DailyAttendance {
 
             if (radius !== null && radius !== undefined && !isNaN(radius)) {
                 if (dist <= radius) {
-                    return `<span class="badge bg-success-lt text-success" aria-label="Within geofence zone, ${dist}m from work location">
+                    return `<span class="badge bg-success-lt text-success" aria-label="${this.t('inZone')}, ${dist}m from work location">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
-                        In Zone
+                        ${this.t('inZone')}
                     </span>`;
                 } else {
-                    return `<span class="badge bg-danger-lt text-danger" title="${dist}m (max ${radius}m)" aria-label="Outside geofence zone, ${dist}m from work location, maximum ${radius}m allowed">
+                    return `<span class="badge bg-danger-lt text-danger" title="${dist}m (max ${radius}m)" aria-label="${this.t('outZone')}, ${dist}m from work location, maximum ${radius}m allowed">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
-                        Out Zone
+                        ${this.t('outZone')}
                     </span>`;
                 }
             }
         }
 
         // No location data (pre-geofencing record, geofencing was disabled, or source is empty)
-        return `<span class="text-muted small" aria-label="No location data">N/A</span>`;
+        return `<span class="text-muted small" aria-label="${this.t('noLocationData')}">${this.t('noLocationData')}</span>`;
     }
 
     escHtml(str) {
@@ -294,5 +294,10 @@ export class DailyAttendance {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#x27;');
+    }
+
+    t(key) {
+        // Translation helper - assumes window.T exists
+        return window.T ? window.T(key) : key;
     }
 }

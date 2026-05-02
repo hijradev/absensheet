@@ -15,6 +15,15 @@
 //   getGeofenceSettings(token)
 //   saveGeofenceSettings(token, data)
 //
+// Monthly report email functions (defined in Settings.gs):
+//   getEmailSettings(token)                            — retrieve email configuration
+//   saveEmailSettings(token, emailData)                — save email config and manage trigger
+//   sendManualMonthlyReport(token)                     — send current month's report on demand
+//   getEmailDeliveryLogs(token)                        — retrieve last 10 delivery log entries
+//
+// Scheduled trigger handler (defined in Settings.gs, called by time-based trigger):
+//   handleScheduledEmailSend()                         — generates and sends previous month's report
+//
 function doGet(e) {
   // We use evaluate() to allow templating if needed, 
   // but vite-plugin-singlefile creates a static index.html which we output directly.
