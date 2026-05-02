@@ -620,3 +620,248 @@ td .btn + .btn {
 #new-password.is-invalid ~ .form-hint {
     display: none;
 }
+
+/* ===== RESPONSIVE: Admin Sidebar — Mobile ===== */
+@media (max-width: 767px) {
+  /* Sidebar slides off-screen by default */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1040;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+    width: 250px;
+  }
+
+  /* Sidebar open state — triggered by body.sidebar-open */
+  body.sidebar-open .admin-sidebar {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1039;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+
+  /* Admin layout: full width on mobile */
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-content {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  /* Touch targets: sidebar nav items */
+  .admin-sidebar-item {
+    min-height: 48px;
+    padding: 0.75rem 1.5rem;
+  }
+
+  .admin-sidebar-group-header {
+    min-height: 48px;
+  }
+}
+
+/* ===== RESPONSIVE: Admin Sidebar — Tablet ===== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .admin-sidebar {
+    width: 60px;
+    overflow: hidden;
+    transition: width 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .admin-sidebar:hover,
+  .admin-sidebar:focus-within {
+    width: 250px;
+  }
+
+  /* Hide text labels in rail mode */
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item span,
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-label span,
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-chevron,
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-subitem span {
+    display: none;
+  }
+
+  /* Center icons in rail mode */
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item,
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-header {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Hide submenu groups in rail mode */
+  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-submenu {
+    display: none;
+  }
+
+  .admin-content {
+    padding: 1.25rem;
+  }
+}
+
+/* ===== RESPONSIVE: Admin Navbar — Mobile ===== */
+@media (max-width: 767px) {
+  /* Hamburger button — visible only on mobile */
+  #btn-hamburger {
+    display: inline-flex;
+  }
+
+  /* Logout text hidden on mobile */
+  .logout-btn-text {
+    display: none;
+  }
+
+  /* Navbar fixed at top */
+  .glass-header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+  }
+}
+
+@media (min-width: 768px) {
+  #btn-hamburger {
+    display: none;
+  }
+}
+
+/* ===== RESPONSIVE: Data Tables — Mobile ===== */
+
+/* Ensure all table wrappers scroll horizontally */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  /* Hide low-priority columns */
+  .col-hide-mobile {
+    display: none !important;
+  }
+
+  /* Action button text hidden on mobile */
+  .btn-action-text {
+    display: none;
+  }
+
+  /* Compact pagination: hide page number buttons */
+  .pagination .page-item.page-number {
+    display: none;
+  }
+
+  /* Table font size reduction for readability */
+  .table {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ===== RESPONSIVE: Filter Bars — Mobile ===== */
+@media (max-width: 767px) {
+  /* Stack all filter bar children vertically */
+  .filter-bar-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .filter-bar-row > * {
+    width: 100% !important;
+  }
+
+  .filter-bar-row .form-select,
+  .filter-bar-row .form-control,
+  .filter-bar-row input[type="date"] {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* Export button text hidden on mobile */
+  .export-btn-text {
+    display: none;
+  }
+}
+
+/* ===== RESPONSIVE: Modals — Bottom Sheet ===== */
+@media (max-width: 767px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-overlay .modal-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
+  }
+
+  .modal-overlay .modal-content {
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Stack multi-column form rows */
+  .modal-body .row > [class*="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* ===== RESPONSIVE: Touch Targets — Mobile ===== */
+@media (max-width: 767px) {
+  /* Minimum 44px touch targets for all buttons */
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Minimum 44px height for form inputs */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS Safari auto-zoom */
+  }
+
+  /* Pagination buttons */
+  .page-link {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ===== RESPONSIVE: Employee Dashboard — Mobile ===== */
+@media (max-width: 767px) {
+  /* Check In / Check Out buttons: full width, large touch target */
+  #btn-checkin,
+  #btn-checkout {
+    min-height: 52px;
+    flex: 1;
+  }
+
+  /* Navbar: prevent overflow */
+  #view-employee .navbar .navbar-nav {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+}

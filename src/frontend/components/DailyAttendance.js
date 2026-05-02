@@ -208,7 +208,7 @@ export class DailyAttendance {
 
     paginationBtn(pageNum, currentPage, label) {
         const active = pageNum === currentPage ? 'active' : '';
-        return `<li class="page-item ${active}">
+        return `<li class="page-item page-number ${active}">
             <button class="page-link js-att-page" data-page="${pageNum}">${label}</button>
         </li>`;
     }

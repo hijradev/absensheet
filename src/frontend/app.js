@@ -234,12 +234,14 @@ const loadView = async (viewName) => {
         
         // Phase 2: Start data loading
         if (viewName === 'admin') {
+            initAdminSidebar();
             loadAdminData();
         } else if (viewName === 'employee') {
             loadEmployeeData();
         } else if (viewName === 'login') {
             // Start the login-page QR scanner after a short delay for DOM to settle
             setTimeout(startLoginScanner, 300);
+            initLoginTabs();
         }
     } catch (err) {
         setState({ 
@@ -538,13 +540,10 @@ function renderDashboardCharts() {
                 }
             }
         },
-        responsive: [{ 
-            breakpoint: 480, 
-            options: { 
-                chart: { width: 200 }, 
-                legend: { position: 'bottom' } 
-            } 
-        }],
+        responsive: [
+            { breakpoint: 768, options: { chart: { height: 280 }, legend: { position: 'bottom' } } },
+            { breakpoint: 480, options: { chart: { height: 240, width: '100%' }, legend: { position: 'bottom', fontSize: '11px' } } }
+        ],
         noData: {
             text: 'No data available',
             align: 'center',
@@ -600,6 +599,10 @@ function renderDashboardCharts() {
                 </div>`;
             }
         },
+        responsive: [
+            { breakpoint: 768, options: { chart: { height: 280 }, xaxis: { labels: { rotate: -45, style: { fontSize: '10px' } } } } },
+            { breakpoint: 480, options: { chart: { height: 240 }, xaxis: { labels: { rotate: -45, style: { fontSize: '9px' } } }, dataLabels: { enabled: false } } }
+        ],
         noData: {
             text: 'No data available',
             align: 'center',
@@ -3321,3 +3324,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+function initAdminSidebar() {
+  const hamburger = document.getElementById('btn-hamburger');
+  const overlay   = document.getElementById('sidebar-overlay');
+  const sidebar   = document.querySelector('.admin-sidebar');
+
+  function openSidebar() {
+    document.body.classList.add('sidebar-open');
+    hamburger?.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeSidebar() {
+    document.body.classList.remove('sidebar-open');
+    hamburger?.setAttribute('aria-expanded', 'false');
+  }
+
+  hamburger?.addEventListener('click', () => {
+    document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+  });
+
+  overlay?.addEventListener('click', closeSidebar);
+
+  // Auto-close on nav item click (mobile)
+  sidebar?.querySelectorAll('.admin-sidebar-item, .admin-sidebar-group-header').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 767) closeSidebar();
+    });
+  });
+}
+
+function initLoginTabs() {
+  const tabBtns   = document.querySelectorAll('.login-tab-btn');
+  const formPanel = document.getElementById('login-panel-form');
+  const scanPanel = document.getElementById('login-panel-scanner');
+  if (!tabBtns.length || !formPanel || !scanPanel) return;
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      if (tab === 'scanner') {
+        formPanel.classList.add('hidden');
+        scanPanel.classList.add('active');
+      } else {
+        formPanel.classList.remove('hidden');
+        scanPanel.classList.remove('active');
+        if (typeof stopLoginScanner === 'function') stopLoginScanner();
+      }
+    });
+  });
+}

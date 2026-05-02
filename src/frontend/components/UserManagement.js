@@ -166,7 +166,7 @@ export class UserManagement {
 
         if (startPage > 1) {
             paginationHTML += `
-                <li class="page-item">
+                <li class="page-item page-number">
                     <a class="page-link js-user-page" href="#" data-page="1">1</a>
                 </li>
             `;
@@ -177,7 +177,7 @@ export class UserManagement {
 
         for (let i = startPage; i <= endPage; i++) {
             paginationHTML += `
-                <li class="page-item ${i === this.currentPage ? 'active' : ''}">
+                <li class="page-item page-number ${i === this.currentPage ? 'active' : ''}">
                     <a class="page-link js-user-page" href="#" data-page="${i}">${i}</a>
                 </li>
             `;
@@ -188,7 +188,7 @@ export class UserManagement {
                 paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
             }
             paginationHTML += `
-                <li class="page-item">
+                <li class="page-item page-number">
                     <a class="page-link js-user-page" href="#" data-page="${totalPages}">${totalPages}</a>
                 </li>
             `;
