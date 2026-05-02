@@ -9,11 +9,18 @@ export class Settings {
         this.callGas = callGas;
         this.currentSettings = {
             organizationName: '',
-            currentLanguage: getLanguage()
+            currentLanguage: getLanguage(),
+            geofence: {
+                enabled: false,
+                latitude: '',
+                longitude: '',
+                radius: ''
+            }
         };
         this.loading = {
             organizationName: false,
-            language: false
+            language: false,
+            geofence: false
         };
         this.pageLoading = true;
     }
@@ -22,16 +29,30 @@ export class Settings {
         this.pageLoading = true;
         this.render();
         try {
-            const res = await this.callGas('getSystemSettings', this.state.token);
-            if (res && res.status === 'success') {
-                this.currentSettings.organizationName = res.data.organizationName || '';
-                this.pageLoading = false;
-                this.render();
+            const [systemRes, geofenceRes] = await Promise.all([
+                this.callGas('getSystemSettings', this.state.token),
+                this.callGas('getGeofenceSettings', this.state.token)
+            ]);
+
+            if (systemRes && systemRes.status === 'success') {
+                this.currentSettings.organizationName = systemRes.data.organizationName || '';
             } else {
-                this.pageLoading = false;
-                this.setState({ errorMessage: res?.message || t('failedToLoadSettings') });
-                this.render();
+                this.setState({ errorMessage: systemRes?.message || t('failedToLoadSettings') });
             }
+
+            if (geofenceRes && geofenceRes.status === 'success') {
+                const gd = geofenceRes.data;
+                this.currentSettings.geofence = {
+                    enabled: gd.enabled || false,
+                    latitude:  gd.latitude  !== null && gd.latitude  !== undefined ? String(gd.latitude)  : '',
+                    longitude: gd.longitude !== null && gd.longitude !== undefined ? String(gd.longitude) : '',
+                    radius:    gd.radius    !== null && gd.radius    !== undefined ? String(gd.radius)    : ''
+                };
+            }
+            // If geofence settings fail to load, keep defaults (empty fields, disabled)
+
+            this.pageLoading = false;
+            this.render();
         } catch (error) {
             this.pageLoading = false;
             this.setState({ errorMessage: t('failedToLoadSettings') });
@@ -212,6 +233,117 @@ export class Settings {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Geofence Settings -->
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <circle cx="12" cy="11" r="3"/>
+                                            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
+                                        </svg>
+                                        Geofence Settings
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <form id="geofence-form">
+                                        <!-- Enable/Disable toggle -->
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="geofence-enabled"
+                                                       ${this.currentSettings.geofence.enabled ? 'checked' : ''}>
+                                                <span class="form-check-label">Enable geofencing</span>
+                                            </label>
+                                            <div class="form-hint" id="geofence-enabled-hint">
+                                                When enabled, employees must be within the configured radius to clock in or out.
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <!-- Latitude -->
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label" for="geofence-latitude">Latitude</label>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       id="geofence-latitude"
+                                                       value="${this.escHtml(this.currentSettings.geofence.latitude)}"
+                                                       step="any"
+                                                       min="-90"
+                                                       max="90"
+                                                       placeholder="e.g. -6.200000"
+                                                       aria-describedby="geofence-latitude-hint">
+                                                <div class="form-hint" id="geofence-latitude-hint">
+                                                    Decimal degrees, −90 to 90.
+                                                </div>
+                                            </div>
+
+                                            <!-- Longitude -->
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label" for="geofence-longitude">Longitude</label>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       id="geofence-longitude"
+                                                       value="${this.escHtml(this.currentSettings.geofence.longitude)}"
+                                                       step="any"
+                                                       min="-180"
+                                                       max="180"
+                                                       placeholder="e.g. 106.816666"
+                                                       aria-describedby="geofence-longitude-hint">
+                                                <div class="form-hint" id="geofence-longitude-hint">
+                                                    Decimal degrees, −180 to 180.
+                                                </div>
+                                            </div>
+
+                                            <!-- Radius -->
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label" for="geofence-radius">Radius</label>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       id="geofence-radius"
+                                                       value="${this.escHtml(this.currentSettings.geofence.radius)}"
+                                                       min="10"
+                                                       max="50000"
+                                                       placeholder="meters"
+                                                       aria-describedby="geofence-radius-hint">
+                                                <div class="form-hint" id="geofence-radius-hint">
+                                                    Allowed radius in meters (10–50,000).
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2 mt-3">
+                                            <button type="button" id="geofence-use-location-btn" class="btn btn-secondary">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <circle cx="12" cy="12" r="4"/>
+                                                    <path d="M12 2v2"/>
+                                                    <path d="M12 20v2"/>
+                                                    <path d="M2 12h2"/>
+                                                    <path d="M20 12h2"/>
+                                                </svg>
+                                                Use My Current Location
+                                            </button>
+                                            <button type="submit" class="btn btn-primary" ${this.loading.geofence ? 'disabled' : ''}>
+                                                ${this.loading.geofence ? `
+                                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                    Saving…
+                                                ` : `
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                        <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
+                                                        <circle cx="12" cy="14" r="2"/>
+                                                        <polyline points="14,4 14,8 8,8 8,4"/>
+                                                    </svg>
+                                                    ${t('save')}
+                                                `}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -236,6 +368,17 @@ export class Settings {
         const saveLanguageBtn = document.getElementById('save-language-btn');
         if (saveLanguageBtn) {
             saveLanguageBtn.addEventListener('click', () => this.handleLanguageSave());
+        }
+
+        // Geofence form
+        const geofenceForm = document.getElementById('geofence-form');
+        if (geofenceForm) {
+            geofenceForm.addEventListener('submit', (e) => this.handleGeofenceSave(e));
+        }
+
+        const useLocationBtn = document.getElementById('geofence-use-location-btn');
+        if (useLocationBtn) {
+            useLocationBtn.addEventListener('click', () => this.handleUseMyLocation());
         }
     }
 
@@ -318,6 +461,120 @@ export class Settings {
         } finally {
             this.loading.language = false;
         }
+    }
+
+    async handleGeofenceSave(e) {
+        e.preventDefault();
+
+        const enabledInput  = document.getElementById('geofence-enabled');
+        const latInput      = document.getElementById('geofence-latitude');
+        const lngInput      = document.getElementById('geofence-longitude');
+        const radiusInput   = document.getElementById('geofence-radius');
+
+        const enabled   = enabledInput ? enabledInput.checked : false;
+        const latitude  = latInput    ? parseFloat(latInput.value)   : NaN;
+        const longitude = lngInput    ? parseFloat(lngInput.value)   : NaN;
+        const radius    = radiusInput ? parseFloat(radiusInput.value) : NaN;
+
+        this.loading.geofence = true;
+        this.render();
+
+        try {
+            const res = await this.callGas('saveGeofenceSettings', this.state.token, {
+                enabled,
+                latitude,
+                longitude,
+                radius
+            });
+
+            if (res && res.status === 'success') {
+                this.currentSettings.geofence = {
+                    enabled,
+                    latitude:  isNaN(latitude)  ? '' : String(latitude),
+                    longitude: isNaN(longitude) ? '' : String(longitude),
+                    radius:    isNaN(radius)    ? '' : String(radius)
+                };
+                this.showSuccess('Geofence settings saved successfully.');
+            } else {
+                this.showError(res?.message || 'Failed to save geofence settings.');
+            }
+        } catch (error) {
+            this.showError('Failed to save geofence settings.');
+        } finally {
+            this.loading.geofence = false;
+            this.render();
+        }
+    }
+
+    handleUseMyLocation() {
+        if (!navigator.geolocation) {
+            this.showError('Location services are not supported by this browser.');
+            return;
+        }
+
+        const useLocationBtn = document.getElementById('geofence-use-location-btn');
+        if (useLocationBtn) {
+            useLocationBtn.disabled = true;
+            useLocationBtn.textContent = 'Acquiring location…';
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latInput = document.getElementById('geofence-latitude');
+                const lngInput = document.getElementById('geofence-longitude');
+
+                if (latInput) latInput.value = position.coords.latitude;
+                if (lngInput) lngInput.value = position.coords.longitude;
+
+                if (useLocationBtn) {
+                    useLocationBtn.disabled = false;
+                    useLocationBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/>
+                            <path d="M12 20v2"/>
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                        </svg>
+                        Use My Current Location
+                    `;
+                }
+            },
+            (error) => {
+                if (useLocationBtn) {
+                    useLocationBtn.disabled = false;
+                    useLocationBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/>
+                            <path d="M12 20v2"/>
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                        </svg>
+                        Use My Current Location
+                    `;
+                }
+
+                let message;
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Location permission denied. Please allow location access and try again.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Unable to determine your location. Please check your GPS signal.';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timed out. Please try again.';
+                        break;
+                    default:
+                        message = 'Failed to obtain your location. Please enter coordinates manually.';
+                }
+                this.showError(message);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     }
 
     showSuccess(message) {

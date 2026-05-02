@@ -34,7 +34,7 @@ export class DailyAttendance {
     }
 
     render() {
-        const { dailyAttendance, dailyAttendanceLoading, dailyAttendanceLoaded, dailyAttendanceError, attFilterStatus, attFilterGroup, attFilterShift, attSearch, attPage, attPageSize } = this.state;
+        const { dailyAttendance, dailyAttendanceLoading, dailyAttendanceLoaded, dailyAttendanceError, attFilterStatus, attFilterGroup, attFilterShift, attSearch, attPage, attPageSize, geofenceRadius } = this.state;
         
         // Update summary cards
         const s = dailyAttendance.summary;
@@ -72,7 +72,7 @@ export class DailyAttendance {
 
         if (dailyAttendanceLoading) {
             table.innerHTML = [1,2,3,4,5].map(() =>
-                `<tr><td colspan="8"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
+                `<tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
             ).join('');
             this.renderPagination(0, 0);
             return;
@@ -80,14 +80,14 @@ export class DailyAttendance {
 
         if (!dailyAttendanceLoaded) {
             if (dailyAttendanceError) {
-                table.innerHTML = `<tr><td colspan="8" class="text-center py-5">
+                table.innerHTML = `<tr><td colspan="9" class="text-center py-5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-danger" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" /><path d="M12 16h.01" /></svg>
                     <p class="text-danger fw-semibold mb-1">Failed to load attendance</p>
                     <p class="text-muted small mb-3">${this.escHtml(dailyAttendanceError)}</p>
                     <button class="btn btn-sm btn-primary js-att-retry">Retry</button>
                 </td></tr>`;
             } else {
-                table.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5">
+                table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /></svg>
                     Select a date and click load to view attendance
                 </td></tr>`;
@@ -132,7 +132,7 @@ export class DailyAttendance {
         }
 
         if (total === 0) {
-            table.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No records match the current filter.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No records match the current filter.</td></tr>`;
             this.renderPagination(0, 0);
             return;
         }
@@ -141,6 +141,7 @@ export class DailyAttendance {
             const rowNum = start + idx + 1;
             const inStatusBadge = this.attStatusBadge(r.checkInStatus);
             const outStatusBadge = r.checkOutTime ? this.attStatusBadge(r.checkOutStatus) : '<span class="text-muted">—</span>';
+            const locationBadge = this.locationBadge(r, geofenceRadius);
             const rowClass = r.checkInStatus === 'Tidak Hadir' ? 'table-light text-muted' : '';
             return `<tr class="${rowClass}">
                 <td class="text-muted">${rowNum}</td>
@@ -157,6 +158,7 @@ export class DailyAttendance {
                 <td>${inStatusBadge}</td>
                 <td>${r.checkOutTime ? `<span class="fw-medium">${this.escHtml(r.checkOutTime)}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td>${outStatusBadge}</td>
+                <td>${locationBadge}</td>
             </tr>`;
         }).join('');
 
@@ -230,6 +232,58 @@ export class DailyAttendance {
         const cls = map[status] || 'bg-secondary';
         const label = labelMap[status] || this.escHtml(status);
         return `<span class="badge ${cls}">${label}</span>`;
+    }
+
+    /**
+     * Render a location indicator badge for an attendance record.
+     *
+     * Logic:
+     *  - source === "admin"                          → neutral "Admin Entry" badge
+     *  - checkInDistance is a number                 → green "✓ In Zone" or red "✗ Out Zone"
+     *    (compare against record's stored radius, or fall back to the configured geofenceRadius)
+     *  - location fields empty/null or pre-geofencing → grey "N/A"
+     *
+     * Uses both color AND text to satisfy WCAG 1.4.1 (use of color).
+     *
+     * @param {Object} record - attendance record from getDailyAttendance
+     * @param {number|null} configuredRadius - geofenceRadius from app state (fallback)
+     * @returns {string} HTML string
+     */
+    locationBadge(record, configuredRadius) {
+        // Admin manual entry — neutral indicator
+        if (record.source === 'admin') {
+            return `<span class="badge bg-secondary-lt text-secondary" aria-label="Admin Entry">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
+                Admin Entry
+            </span>`;
+        }
+
+        // Check if we have a numeric distance value
+        const distance = record.checkInDistance;
+        if (distance !== null && distance !== undefined && distance !== '' && !isNaN(Number(distance))) {
+            const dist = Number(distance);
+            // Use the radius stored on the record if available, otherwise fall back to configured radius
+            const radius = (record.geofenceRadius !== null && record.geofenceRadius !== undefined && record.geofenceRadius !== '')
+                ? Number(record.geofenceRadius)
+                : configuredRadius;
+
+            if (radius !== null && radius !== undefined && !isNaN(radius)) {
+                if (dist <= radius) {
+                    return `<span class="badge bg-success-lt text-success" aria-label="Within geofence zone, ${dist}m from work location">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                        In Zone
+                    </span>`;
+                } else {
+                    return `<span class="badge bg-danger-lt text-danger" title="${dist}m (max ${radius}m)" aria-label="Outside geofence zone, ${dist}m from work location, maximum ${radius}m allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
+                        Out Zone
+                    </span>`;
+                }
+            }
+        }
+
+        // No location data (pre-geofencing record, geofencing was disabled, or source is empty)
+        return `<span class="text-muted small" aria-label="No location data">N/A</span>`;
     }
 
     escHtml(str) {

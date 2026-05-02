@@ -190,3 +190,96 @@ function getOrganizationName() {
     return 'Attendance System';
   }
 }
+
+/**
+ * Get current geofence configuration (admin only).
+ * Reads GEOFENCE_ENABLED, WORK_LAT, WORK_LNG, GEOFENCE_RADIUS from Script Properties.
+ *
+ * @param {string} token - Admin session token
+ * @returns {{ status: string, data: { enabled: boolean, latitude: number|null, longitude: number|null, radius: number|null } }}
+ */
+function getGeofenceSettings(token) {
+  try {
+    checkAdmin(token);
+
+    var scriptProps = PropertiesService.getScriptProperties();
+    var enabledStr  = scriptProps.getProperty('GEOFENCE_ENABLED');
+    var latStr      = scriptProps.getProperty('WORK_LAT');
+    var lngStr      = scriptProps.getProperty('WORK_LNG');
+    var radiusStr   = scriptProps.getProperty('GEOFENCE_RADIUS');
+
+    var enabled   = enabledStr === 'true';
+    var latitude  = latStr    !== null ? parseFloat(latStr)    : null;
+    var longitude = lngStr    !== null ? parseFloat(lngStr)    : null;
+    var radius    = radiusStr !== null ? parseFloat(radiusStr) : null;
+
+    // Treat NaN (malformed stored value) as null
+    if (latitude  !== null && isNaN(latitude))  latitude  = null;
+    if (longitude !== null && isNaN(longitude)) longitude = null;
+    if (radius    !== null && isNaN(radius))    radius    = null;
+
+    return successResponse({
+      enabled:   enabled,
+      latitude:  latitude,
+      longitude: longitude,
+      radius:    radius
+    });
+  } catch (e) {
+    return errorResponse(e.message);
+  }
+}
+
+/**
+ * Save geofence configuration (admin only).
+ * Validates all fields before writing; on any validation failure returns an
+ * errorResponse without modifying any Script Property.
+ *
+ * @param {string} token - Admin session token
+ * @param {{ enabled: boolean, latitude: number, longitude: number, radius: number }} data
+ * @returns {{ status: string, message: string }}
+ */
+function saveGeofenceSettings(token, data) {
+  try {
+    var user = checkAdmin(token);
+
+    if (!data || typeof data !== 'object') {
+      return errorResponse('Invalid geofence settings data.');
+    }
+
+    var enabled   = data.enabled;
+    var latitude  = data.latitude;
+    var longitude = data.longitude;
+    var radius    = data.radius;
+
+    // Validate latitude
+    if (typeof latitude !== 'number' || isNaN(latitude) || latitude < -90 || latitude > 90) {
+      return errorResponse('Latitude must be between -90 and 90.');
+    }
+
+    // Validate longitude
+    if (typeof longitude !== 'number' || isNaN(longitude) || longitude < -180 || longitude > 180) {
+      return errorResponse('Longitude must be between -180 and 180.');
+    }
+
+    // Validate radius
+    if (typeof radius !== 'number' || isNaN(radius) || radius < 10 || radius > 50000) {
+      return errorResponse('Geofence radius must be between 10 and 50,000 meters.');
+    }
+
+    // All validations passed — write all four keys atomically
+    var scriptProps = PropertiesService.getScriptProperties();
+    scriptProps.setProperties({
+      'GEOFENCE_ENABLED': enabled ? 'true' : 'false',
+      'WORK_LAT':         String(latitude),
+      'WORK_LNG':         String(longitude),
+      'GEOFENCE_RADIUS':  String(radius)
+    });
+
+    // Log the configuration change
+    logActivity(user.userId, 'Updated geofence settings: enabled=' + enabled + ', lat=' + latitude + ', lng=' + longitude + ', radius=' + radius + 'm');
+
+    return successResponse(null, 'Geofence settings saved successfully.');
+  } catch (e) {
+    return errorResponse(e.message);
+  }
+}

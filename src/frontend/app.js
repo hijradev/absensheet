@@ -108,7 +108,17 @@ const state = {
 
     // Login-page QR scanner
     loginScannerActive: false,
-    loginScannerResult: null  // { type: 'success'|'error', message, detail }
+    loginScannerResult: null,  // { type: 'success'|'error', message, detail }
+
+    // Geofence / location
+    geofenceEnabled: false,
+    geofenceRadius: null,
+    geofenceWorkLat: null,
+    geofenceWorkLng: null,
+    locationPayload: null,       // { latitude, longitude, accuracy } — current GPS fix
+    locationStatus: 'disabled',  // 'disabled' | 'acquiring' | 'within' | 'outside' | 'error'
+    locationErrorMessage: '',
+    locationDistance: null,      // computed client-side distance in meters
 };
 
 // Batch-update state and render once.
@@ -169,6 +179,8 @@ const callGas = (functionName, ...args) => {
                     resolve({ status: 'success', data: { action: 'checkin', time: '08:00:00', status: 'Tepat Waktu', employeeName: 'Mock Employee' }, message: 'Check In Successful' });
                 } else if (functionName === 'getSystemSettings') {
                     resolve({ status: 'success', data: { organizationName: 'My Organization', language: 'en' } });
+                } else if (functionName === 'getGeofenceSettings') {
+                    resolve({ status: 'success', data: { enabled: false, latitude: null, longitude: null, radius: null } });
                 } else if (functionName === 'saveOrganizationSettings') {
                     resolve({ status: 'success', message: 'Organization settings saved successfully' });
                 } else if (functionName === 'saveLanguagePreference') {
@@ -372,6 +384,53 @@ function renderEmployeeView() {
     if (checkoutIcon) checkoutIcon.style.display = state.checkOutLoading ? 'none' : 'inline-block';
     if (checkinText) checkinText.textContent = state.checkInLoading ? t('common.processing') : t('employeeDashboard.checkIn');
     if (checkoutText) checkoutText.textContent = state.checkOutLoading ? t('common.processing') : t('employeeDashboard.checkOut');
+
+    // --- Location status badge and button visibility ---
+    const locationContainer = document.getElementById('location-status-container');
+    const locationBadge     = document.getElementById('location-status-badge');
+    const distanceDisplay   = document.getElementById('location-distance-display');
+    const btnCheckinEl      = document.getElementById('btn-checkin');
+    const btnCheckoutEl     = document.getElementById('btn-checkout');
+
+    if (locationContainer && locationBadge) {
+        if (!state.geofenceEnabled) {
+            // Geofencing disabled: hide badge, show buttons unconditionally
+            locationContainer.style.display = 'none';
+            if (btnCheckinEl)  btnCheckinEl.style.display  = '';
+            if (btnCheckoutEl) btnCheckoutEl.style.display = '';
+        } else {
+            locationContainer.style.display = 'block';
+
+            const badgeConfigs = {
+                acquiring: { cls: 'bg-warning text-dark', label: 'Acquiring\u2026' },
+                within:    { cls: 'bg-success text-white', label: 'Within Zone' },
+                outside:   { cls: 'bg-danger text-white',  label: 'Outside Zone' },
+                error:     { cls: 'bg-secondary text-white', label: 'Location Error' },
+                disabled:  { cls: 'bg-secondary text-white', label: 'Location Disabled' }
+            };
+            const cfg = badgeConfigs[state.locationStatus] || badgeConfigs.error;
+            locationBadge.className = `badge fs-6 px-3 py-2 ${cfg.cls}`;
+            locationBadge.textContent = cfg.label;
+
+            // Distance display
+            if (distanceDisplay) {
+                if (state.locationStatus === 'outside' && state.locationDistance !== null && state.geofenceRadius !== null) {
+                    distanceDisplay.textContent = `You are ${state.locationDistance}m from the work location (max ${state.geofenceRadius}m allowed).`;
+                } else if (state.locationStatus === 'error' && state.locationErrorMessage) {
+                    distanceDisplay.textContent = state.locationErrorMessage;
+                } else if (state.locationStatus === 'within' && state.locationDistance !== null) {
+                    distanceDisplay.textContent = `${state.locationDistance}m from work location.`;
+                } else {
+                    distanceDisplay.textContent = '';
+                }
+            }
+
+            // Show/hide buttons based on location status
+            const canSubmit = state.locationStatus === 'within';
+            if (btnCheckinEl)  btnCheckinEl.style.display  = canSubmit ? '' : 'none';
+            if (btnCheckoutEl) btnCheckoutEl.style.display = canSubmit ? '' : 'none';
+        }
+    }
 
     const historyTable = document.getElementById('employee-history-table');
     if (!historyTable) return;
@@ -1857,22 +1916,95 @@ const logout = () => {
 const loadEmployeeData = async (showPageSpinner = true) => {
     if (showPageSpinner) setState({ dataLoaded: false, dataError: '' });
     try {
-        const res = await callGas('getMyHistory', state.token);
-        if (res && res.status === 'success') {
-            setState({ attendanceHistory: res.data, dataLoaded: true, dataError: '' });
+        // Fetch history and geofence settings in parallel
+        const [histRes, geoRes] = await Promise.all([
+            callGas('getMyHistory', state.token),
+            callGas('getGeofenceSettings', state.token)
+        ]);
+
+        const updates = {};
+
+        if (histRes && histRes.status === 'success') {
+            updates.attendanceHistory = histRes.data;
+            updates.dataLoaded = true;
+            updates.dataError = '';
         } else {
-            const msg = res?.message || 'Failed to load attendance data.';
-            setState({ dataLoaded: true, dataError: showPageSpinner ? msg : '', errorMessage: showPageSpinner ? '' : msg });
+            const msg = histRes?.message || 'Failed to load attendance data.';
+            updates.dataLoaded = true;
+            if (showPageSpinner) {
+                updates.dataError = msg;
+            } else {
+                updates.errorMessage = msg;
+            }
+        }
+
+        if (geoRes && geoRes.status === 'success') {
+            const gd = geoRes.data;
+            updates.geofenceEnabled  = gd.enabled || false;
+            updates.geofenceRadius   = gd.radius   || null;
+            updates.geofenceWorkLat  = gd.latitude  !== null && gd.latitude  !== undefined ? gd.latitude  : null;
+            updates.geofenceWorkLng  = gd.longitude !== null && gd.longitude !== undefined ? gd.longitude : null;
+        }
+
+        setState(updates);
+
+        // Kick off location acquisition if geofencing is enabled
+        if (updates.geofenceEnabled) {
+            startLocationAcquisition();
+        } else {
+            setState({ locationStatus: 'disabled', locationPayload: null });
         }
     } catch {
-        setState({ dataLoaded: true, dataError: showPageSpinner ? 'Failed to load data. Check your connection.' : '', errorMessage: showPageSpinner ? '' : 'Failed to reload data.' });
+        setState({
+            dataLoaded: true,
+            dataError: showPageSpinner ? 'Failed to load data. Check your connection.' : '',
+            errorMessage: showPageSpinner ? '' : 'Failed to reload data.'
+        });
+    }
+};
+
+const startLocationAcquisition = async () => {
+    setState({ locationStatus: 'acquiring', locationPayload: null, locationDistance: null, locationErrorMessage: '' });
+    try {
+        const { GeolocationService, haversineDistance } = await import('./utils/GeolocationService.js');
+        const coords = await GeolocationService.getCurrentPosition(10000);
+
+        if (coords.accuracy > 200) {
+            setState({
+                locationStatus: 'error',
+                locationPayload: coords,
+                locationErrorMessage: `GPS accuracy is insufficient (${Math.round(coords.accuracy)}m). Please move to an open area and try again.`
+            });
+            return;
+        }
+
+        // Compute client-side distance for UX (server is authoritative)
+        let distance = null;
+        let status = 'within';
+        if (state.geofenceWorkLat !== null && state.geofenceWorkLng !== null && state.geofenceRadius !== null) {
+            distance = Math.round(haversineDistance(state.geofenceWorkLat, state.geofenceWorkLng, coords.latitude, coords.longitude));
+            status = distance <= state.geofenceRadius ? 'within' : 'outside';
+        }
+
+        setState({
+            locationStatus: status,
+            locationPayload: coords,
+            locationDistance: distance,
+            locationErrorMessage: ''
+        });
+    } catch (errMsg) {
+        setState({
+            locationStatus: 'error',
+            locationPayload: null,
+            locationErrorMessage: typeof errMsg === 'string' ? errMsg : 'Unable to determine your location.'
+        });
     }
 };
 
 const doCheckIn = async () => {
     setState({ checkInLoading: true, successMessage: '', errorMessage: '' });
     try {
-        const res = await callGas('checkIn', state.token);
+        const res = await callGas('checkIn', state.token, state.locationPayload || undefined);
         if (res && res.status === 'success') {
             setState({ checkInLoading: false, successMessage: t('employeeDashboard.checkedInSuccessfully') + ' ' + res.data.time });
             loadEmployeeData(false);
@@ -1887,7 +2019,7 @@ const doCheckIn = async () => {
 const doCheckOut = async () => {
     setState({ checkOutLoading: true, successMessage: '', errorMessage: '' });
     try {
-        const res = await callGas('checkOut', state.token);
+        const res = await callGas('checkOut', state.token, state.locationPayload || undefined);
         if (res && res.status === 'success') {
             setState({ checkOutLoading: false, successMessage: t('employeeDashboard.checkedOutSuccessfully') + ' ' + res.data.time });
             loadEmployeeData(false);
@@ -1964,7 +2096,7 @@ const onLoginScanSuccess = async (decodedText) => {
     }
 
     try {
-        const res = await callGas('processAttendanceByQR', decodedText);
+        const res = await callGas('processAttendanceByQR', decodedText, state.locationPayload || undefined);
         if (res && res.status === 'success') {
             const d = res.data;
             const actionLabel = d.action === 'checkin' ? 'Checked In' : 'Checked Out';

@@ -52,6 +52,14 @@
                                     <div class="mb-3">
                                         <p class="text-muted">Welcome, <strong id="employee-name"></strong></p>
                                     </div>
+                                    <!-- Location Status Badge (shown only when geofencing is enabled) -->
+                                    <div id="location-status-container" style="display: none;" class="mb-3">
+                                        <div id="location-status-badge" class="badge fs-6 px-3 py-2" aria-live="polite" aria-atomic="true">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                        <div id="location-distance-display" class="text-muted small mt-1" aria-live="polite"></div>
+                                    </div>
+
                                     <div class="d-flex justify-content-center gap-3 mb-4">
                                         <button id="btn-checkin" class="btn btn-success btn-lg">
                                             <span id="checkin-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;"></span>
