@@ -37,13 +37,20 @@ function processAttendance(token, action, locationPayload) {
   const user = verifyToken(token);
   if (!user) return errorResponse("Invalid or expired session. Please login again.");
 
+  // --- Check if employee is on leave today ---
+  const todayStr = getTodayStr();
+  const props = getProps();
+  const leaveCheck = isEmployeeOnLeave(user.userId, todayStr);
+  if (leaveCheck.onLeave) {
+    return errorResponse(`You are on ${leaveCheck.leaveType} leave today. Attendance not required.`);
+  }
+
   // --- Geofence validation (runs before any sheet writes) ---
   const locResult = validateLocation(locationPayload);
   if (!locResult.valid) {
     return errorResponse(locResult.error);
   }
 
-  const props = getProps();
   const currentYear = new Date().getFullYear();
   const attendanceDbId = props["ATTENDANCE_DB_ID_" + currentYear];
   if (!attendanceDbId) return errorResponse("Attendance DB for this year not configured.");
@@ -58,7 +65,6 @@ function processAttendance(token, action, locationPayload) {
   if (!shiftData) return errorResponse("Shift data not found for user.");
 
   // --- Single read: today's attendance ---
-  const todayStr = getTodayStr();
   const now = new Date();
   const nowTime = now.getHours() * 60 + now.getMinutes();
   const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
@@ -222,11 +228,15 @@ function getDailyAttendance(token, dateStr) {
       });
     }
 
-    // Find employees who haven't checked in (absent)
+    // Find employees who haven't checked in
     employees.forEach(emp => {
       if (!presentIds.has(emp.id)) {
         const shift = shiftMap[emp.shift_id] || {};
         const pos = posMap[emp.jabatan_id] || {};
+        
+        // Check if employee is on leave
+        const leaveCheck = isEmployeeOnLeave(emp.id, targetDate);
+        
         records.push({
           employeeId:       emp.id,
           employeeName:     emp.name || "-",
@@ -235,7 +245,7 @@ function getDailyAttendance(token, dateStr) {
           shiftStart:       shift.start_time || "-",
           shiftEnd:         shift.end_time || "-",
           checkInTime:      "",
-          checkInStatus:    "Tidak Hadir",
+          checkInStatus:    leaveCheck.onLeave ? leaveCheck.leaveType : "Tidak Hadir",
           checkOutTime:     "",
           checkOutStatus:   "",
           checkInLat:       null,
@@ -244,7 +254,7 @@ function getDailyAttendance(token, dateStr) {
           checkOutLat:      null,
           checkOutLng:      null,
           checkOutDistance: null,
-          source:           null
+          source:           leaveCheck.onLeave ? "leave" : null
         });
       }
     });
@@ -257,12 +267,18 @@ function getDailyAttendance(token, dateStr) {
     });
 
     // Summary
+    const leaveTypes = ["Cuti", "Izin", "Sakit", "Libur"];
     const summary = {
       total:       employees.length,
       tepatWaktu:  records.filter(r => r.checkInStatus === "Tepat Waktu").length,
       terlambat:   records.filter(r => r.checkInStatus === "Terlambat").length,
-      pulangAwal:       records.filter(r => r.checkOutStatus === "Pulang Awal").length,
-      belumAbsen:  records.filter(r => r.checkInStatus === "Tidak Hadir").length
+      pulangAwal:  records.filter(r => r.checkOutStatus === "Pulang Awal").length,
+      belumAbsen:  records.filter(r => r.checkInStatus === "Tidak Hadir").length,
+      cuti:        records.filter(r => r.checkInStatus === "Cuti").length,
+      izin:        records.filter(r => r.checkInStatus === "Izin").length,
+      sakit:       records.filter(r => r.checkInStatus === "Sakit").length,
+      libur:       records.filter(r => r.checkInStatus === "Libur").length,
+      onLeave:     records.filter(r => leaveTypes.includes(r.checkInStatus)).length
     };
 
     return successResponse({ records, summary, date: targetDate });
@@ -376,12 +392,16 @@ function getDailyAttendanceRange(token, startDate, endDate) {
       }
     }
 
-    // Add "Tidak Hadir" rows for each date where an employee has no record
+    // Add rows for each date where an employee has no attendance record
     dates.forEach(d => {
       employees.forEach(emp => {
         if (!presentByDate[d].has(emp.id)) {
           const shift = shiftMap[emp.shift_id] || {};
           const pos   = posMap[emp.jabatan_id] || {};
+          
+          // Check if employee is on leave
+          const leaveCheck = isEmployeeOnLeave(emp.id, d);
+          
           records.push({
             date:             d,
             employeeId:       emp.id,
@@ -391,7 +411,7 @@ function getDailyAttendanceRange(token, startDate, endDate) {
             shiftStart:       shift.start_time || "-",
             shiftEnd:         shift.end_time || "-",
             checkInTime:      "",
-            checkInStatus:    "Tidak Hadir",
+            checkInStatus:    leaveCheck.onLeave ? leaveCheck.leaveType : "Tidak Hadir",
             checkOutTime:     "",
             checkOutStatus:   "",
             checkInLat:       null,
@@ -400,7 +420,7 @@ function getDailyAttendanceRange(token, startDate, endDate) {
             checkOutLat:      null,
             checkOutLng:      null,
             checkOutDistance: null,
-            source:           null
+            source:           leaveCheck.onLeave ? "leave" : null
           });
         }
       });
@@ -415,12 +435,18 @@ function getDailyAttendanceRange(token, startDate, endDate) {
     });
 
     // Aggregate summary across all days
+    const leaveTypes = ["Cuti", "Izin", "Sakit", "Libur"];
     const summary = {
       total:      employees.length * dates.length,
       tepatWaktu: records.filter(r => r.checkInStatus === "Tepat Waktu").length,
       terlambat:  records.filter(r => r.checkInStatus === "Terlambat").length,
-      pulangAwal:      records.filter(r => r.checkOutStatus === "Pulang Awal").length,
-      belumAbsen: records.filter(r => r.checkInStatus === "Tidak Hadir").length
+      pulangAwal: records.filter(r => r.checkOutStatus === "Pulang Awal").length,
+      belumAbsen: records.filter(r => r.checkInStatus === "Tidak Hadir").length,
+      cuti:       records.filter(r => r.checkInStatus === "Cuti").length,
+      izin:       records.filter(r => r.checkInStatus === "Izin").length,
+      sakit:      records.filter(r => r.checkInStatus === "Sakit").length,
+      libur:      records.filter(r => r.checkInStatus === "Libur").length,
+      onLeave:    records.filter(r => leaveTypes.includes(r.checkInStatus)).length
     };
 
     return successResponse({ records, summary, startDate, endDate, isRange: true });
@@ -666,13 +692,20 @@ function processAttendanceByQR(employeeId, locationPayload) {
       return errorResponse("Invalid employee ID.");
     }
 
+    // --- Check if employee is on leave today ---
+    const todayStr = getTodayStr();
+    const props = getProps();
+    const leaveCheck = isEmployeeOnLeave(employeeId, todayStr);
+    if (leaveCheck.onLeave) {
+      return errorResponse(`Employee is on ${leaveCheck.leaveType} leave today. Attendance not required.`);
+    }
+
     // --- Geofence validation (runs before any sheet writes) ---
     const locResult = validateLocation(locationPayload);
     if (!locResult.valid) {
       return errorResponse(locResult.error);
     }
 
-    const props = getProps();
     const currentYear = new Date().getFullYear();
     const attendanceDbId = props["ATTENDANCE_DB_ID_" + currentYear];
     if (!attendanceDbId) return errorResponse("Attendance DB for this year not configured.");
@@ -687,7 +720,6 @@ function processAttendanceByQR(employeeId, locationPayload) {
     if (!shiftData) return errorResponse("Shift data not found for employee.");
 
     // Check today's attendance
-    const todayStr = getTodayStr();
     const now = new Date();
     const nowTime = now.getHours() * 60 + now.getMinutes();
     const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");

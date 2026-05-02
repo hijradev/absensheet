@@ -27,6 +27,22 @@ function setupDatabase() {
     const qrSheet = masterSS.insertSheet("QR_Codes");
     qrSheet.appendRow(["employee_id", "qr_data_url", "generated_at"]);
     
+    // Leaves sheet
+    const leavesSheet = masterSS.insertSheet("Leaves");
+    leavesSheet.appendRow([
+      "id",           // Leave ID
+      "employee_id",  // Employee ID
+      "leave_type",   // Cuti/Izin/Sakit/Libur
+      "start_date",   // yyyy-MM-dd
+      "end_date",     // yyyy-MM-dd
+      "status",       // pending/approved/rejected
+      "reason",       // Reason for leave
+      "approved_by",  // Admin who approved
+      "approved_at",  // When approved
+      "created_at",   // When created
+      "created_by"    // Who created
+    ]);
+    
     // 2. Create Attendance DB for current year
     const currentYear = new Date().getFullYear();
     const attSS = SpreadsheetApp.create("Absensi_DB_Attendance_" + currentYear);
@@ -89,6 +105,15 @@ function updateSchema() {
     if (!ss.getSheetByName("QR_Codes")) {
       const qrSheet = ss.insertSheet("QR_Codes");
       qrSheet.appendRow(["employee_id", "qr_data_url", "generated_at"]);
+    }
+
+    // 5. Ensure Leaves sheet
+    if (!ss.getSheetByName("Leaves")) {
+      const leavesSheet = ss.insertSheet("Leaves");
+      leavesSheet.appendRow([
+        "id", "employee_id", "leave_type", "start_date", "end_date", 
+        "status", "reason", "approved_by", "approved_at", "created_at", "created_by"
+      ]);
     }
 
     return "Schema Update Complete!";

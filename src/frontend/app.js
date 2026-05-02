@@ -1,7 +1,15 @@
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import QRCode from 'qrcode';
+import * as bootstrap from 'bootstrap';
+import '@tabler/core/dist/js/tabler.min.js';
 import './style.css';
 import { initLanguage, t, getLanguage, onLanguageChange, setLanguage } from './i18n/i18n.js';
+
+// Make bootstrap available globally for components
+// We ensure it has the Modal class even if the module structure is nested
+if (typeof window !== 'undefined') {
+    window.bootstrap = bootstrap.default || bootstrap;
+}
 
 // Initialize language
 initLanguage();
@@ -45,7 +53,7 @@ const state = {
 
     // Admin — split into dashboard data and management data
     adminView: 'dashboard',
-    adminStats: { onTime: 0, late: 0, absent: 0, notPresent: 0 },
+    adminStats: { onTime: 0, late: 0, absent: 0, notPresent: 0, cuti: 0, izin: 0, sakit: 0, libur: 0 },
     adminRecap: [],
     adminMonthlyTrend: [],
     // Management data loaded lazily per-tab
@@ -119,6 +127,13 @@ const state = {
     locationStatus: 'disabled',  // 'disabled' | 'acquiring' | 'within' | 'outside' | 'error'
     locationErrorMessage: '',
     locationDistance: null,      // computed client-side distance in meters
+    // Leave Management
+    leaveRequests: [],
+    leaveLoading: false,
+    leaveLoaded: false,
+    leaveSearch: '',
+    leaveFilterStatus: 'Pending',
+    currentLeaveComponent: null,
 };
 
 // Batch-update state and render once.
@@ -463,7 +478,7 @@ function renderAdminView() {
     }
 
     // Sidebar active states + sub-view visibility
-    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile'].forEach(v => {
+    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile', 'leaves'].forEach(v => {
         const navEl = document.getElementById(`nav-${v}`);
         if (navEl) navEl.classList.toggle('active', state.adminView === v);
         const viewEl = document.getElementById(`admin-view-${v}`);
@@ -478,6 +493,7 @@ function renderAdminView() {
         'users':             'management-group',
         'shifts':            'management-group',
         'positions':         'management-group',
+        'leaves':            'management-group',
         'reports':           'reports-group',
         'logs':              'reports-group',
     };
@@ -550,6 +566,7 @@ function renderAdminView() {
     if (state.adminView === 'logs') renderLogsTable();
     if (state.adminView === 'reports') renderReports();
     if (state.adminView === 'qrcodes') renderQrCodesView();
+    if (state.adminView === 'leaves') renderLeavesView();
 }
 
 let _attendancePieChart = null;
@@ -695,6 +712,22 @@ function renderDashboardCharts() {
             _attendanceBarChart.render();
         }
     }, 100);
+}
+
+async function renderLeavesView() {
+    if (state.currentLeaveComponent) {
+        state.currentLeaveComponent.render();
+        return;
+    }
+
+    try {
+        const { LeaveManagement } = await import('./components/LeaveManagement.js');
+        const component = new LeaveManagement(state, setState, callGas);
+        state.currentLeaveComponent = component;
+        await component.loadData();
+    } catch (error) {
+        console.error('Failed to load LeaveManagement component:', error);
+    }
 }
 
 async function renderReports() {
