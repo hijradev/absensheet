@@ -203,15 +203,18 @@ function getGeofenceSettings(token) {
     checkAdmin(token);
 
     var scriptProps = PropertiesService.getScriptProperties();
-    var enabledStr  = scriptProps.getProperty('GEOFENCE_ENABLED');
-    var latStr      = scriptProps.getProperty('WORK_LAT');
-    var lngStr      = scriptProps.getProperty('WORK_LNG');
-    var radiusStr   = scriptProps.getProperty('GEOFENCE_RADIUS');
+    var enabledStr      = scriptProps.getProperty('GEOFENCE_ENABLED');
+    var latStr          = scriptProps.getProperty('WORK_LAT');
+    var lngStr          = scriptProps.getProperty('WORK_LNG');
+    var radiusStr       = scriptProps.getProperty('GEOFENCE_RADIUS');
+    var skipOnDayOffStr = scriptProps.getProperty('GEOFENCE_SKIP_ON_DAYOFF');
 
-    var enabled   = enabledStr === 'true';
-    var latitude  = latStr    !== null ? parseFloat(latStr)    : null;
-    var longitude = lngStr    !== null ? parseFloat(lngStr)    : null;
-    var radius    = radiusStr !== null ? parseFloat(radiusStr) : null;
+    var enabled      = enabledStr === 'true';
+    var latitude     = latStr    !== null ? parseFloat(latStr)    : null;
+    var longitude    = lngStr    !== null ? parseFloat(lngStr)    : null;
+    var radius       = radiusStr !== null ? parseFloat(radiusStr) : null;
+    // Default to true (enabled) when the property has never been set
+    var skipOnDayOff = skipOnDayOffStr === null ? true : skipOnDayOffStr === 'true';
 
     // Treat NaN (malformed stored value) as null
     if (latitude  !== null && isNaN(latitude))  latitude  = null;
@@ -219,10 +222,11 @@ function getGeofenceSettings(token) {
     if (radius    !== null && isNaN(radius))    radius    = null;
 
     return successResponse({
-      enabled:   enabled,
-      latitude:  latitude,
-      longitude: longitude,
-      radius:    radius
+      enabled:      enabled,
+      latitude:     latitude,
+      longitude:    longitude,
+      radius:       radius,
+      skipOnDayOff: skipOnDayOff
     });
   } catch (e) {
     return errorResponse(e.message);
@@ -246,10 +250,12 @@ function saveGeofenceSettings(token, data) {
       return errorResponse('Invalid geofence settings data.');
     }
 
-    var enabled   = data.enabled;
-    var latitude  = data.latitude;
-    var longitude = data.longitude;
-    var radius    = data.radius;
+    var enabled      = data.enabled;
+    var latitude     = data.latitude;
+    var longitude    = data.longitude;
+    var radius       = data.radius;
+    // skipOnDayOff defaults to true if not provided
+    var skipOnDayOff = (data.skipOnDayOff === undefined || data.skipOnDayOff === null) ? true : !!data.skipOnDayOff;
 
     // Validate latitude
     if (typeof latitude !== 'number' || isNaN(latitude) || latitude < -90 || latitude > 90) {
@@ -266,17 +272,18 @@ function saveGeofenceSettings(token, data) {
       return errorResponse('Geofence radius must be between 10 and 50,000 meters.');
     }
 
-    // All validations passed — write all four keys atomically
+    // All validations passed — write all keys atomically
     var scriptProps = PropertiesService.getScriptProperties();
     scriptProps.setProperties({
-      'GEOFENCE_ENABLED': enabled ? 'true' : 'false',
-      'WORK_LAT':         String(latitude),
-      'WORK_LNG':         String(longitude),
-      'GEOFENCE_RADIUS':  String(radius)
+      'GEOFENCE_ENABLED':        enabled ? 'true' : 'false',
+      'WORK_LAT':                String(latitude),
+      'WORK_LNG':                String(longitude),
+      'GEOFENCE_RADIUS':         String(radius),
+      'GEOFENCE_SKIP_ON_DAYOFF': skipOnDayOff ? 'true' : 'false'
     });
 
     // Log the configuration change
-    logActivity(user.userId, 'Updated geofence settings: enabled=' + enabled + ', lat=' + latitude + ', lng=' + longitude + ', radius=' + radius + 'm');
+    logActivity(user.userId, 'Updated geofence settings: enabled=' + enabled + ', lat=' + latitude + ', lng=' + longitude + ', radius=' + radius + 'm, skipOnDayOff=' + skipOnDayOff);
 
     return successResponse(null, 'Geofence settings saved successfully.');
   } catch (e) {
