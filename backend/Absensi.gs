@@ -46,7 +46,26 @@ function processAttendance(token, action, locationPayload) {
   }
 
   // --- Geofence validation (runs before any sheet writes) ---
-  const locResult = validateLocation(locationPayload);
+  // Skip geofencing when the admin has enabled "skip on day-off/holiday" AND
+  // the employee's schedule for today is "off" or "holiday".
+  var effectiveLocationPayload = locationPayload;
+  var skipGeofenceForDayOff = false;
+  var skipOnDayOffProp = PropertiesService.getScriptProperties().getProperty('GEOFENCE_SKIP_ON_DAYOFF');
+  // Default to true when the property has never been set
+  var skipOnDayOffEnabled = skipOnDayOffProp === null ? true : skipOnDayOffProp === 'true';
+  if (skipOnDayOffEnabled) {
+    var sched = getEmployeeScheduleForDate(user.userId, todayStr);
+    if (sched && (sched.scheduleType === 'off' || sched.scheduleType === 'holiday')) {
+      skipGeofenceForDayOff = true;
+    }
+  }
+
+  var locResult;
+  if (skipGeofenceForDayOff) {
+    locResult = { valid: true, skipped: true, distance: 0, radius: 0, error: null };
+  } else {
+    locResult = validateLocation(locationPayload);
+  }
   if (!locResult.valid) {
     return errorResponse(locResult.error);
   }
@@ -727,7 +746,24 @@ function processAttendanceByQR(employeeId, locationPayload) {
     }
 
     // --- Geofence validation (runs before any sheet writes) ---
-    const locResult = validateLocation(locationPayload);
+    // Skip geofencing when the admin has enabled "skip on day-off/holiday" AND
+    // the employee's schedule for today is "off" or "holiday".
+    var skipGeofenceForDayOffQR = false;
+    var skipOnDayOffPropQR = PropertiesService.getScriptProperties().getProperty('GEOFENCE_SKIP_ON_DAYOFF');
+    var skipOnDayOffEnabledQR = skipOnDayOffPropQR === null ? true : skipOnDayOffPropQR === 'true';
+    if (skipOnDayOffEnabledQR) {
+      var schedQR = getEmployeeScheduleForDate(employeeId, todayStr);
+      if (schedQR && (schedQR.scheduleType === 'off' || schedQR.scheduleType === 'holiday')) {
+        skipGeofenceForDayOffQR = true;
+      }
+    }
+
+    var locResult;
+    if (skipGeofenceForDayOffQR) {
+      locResult = { valid: true, skipped: true, distance: 0, radius: 0, error: null };
+    } else {
+      locResult = validateLocation(locationPayload);
+    }
     if (!locResult.valid) {
       return errorResponse(locResult.error);
     }

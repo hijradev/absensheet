@@ -14,7 +14,8 @@ export class Settings {
                 enabled: false,
                 latitude: '',
                 longitude: '',
-                radius: ''
+                radius: '',
+                skipOnDayOff: true
             },
             monthlyEmail: {
                 enabled: false,
@@ -53,9 +54,10 @@ export class Settings {
                 const gd = geofenceRes.data;
                 this.currentSettings.geofence = {
                     enabled: gd.enabled || false,
-                    latitude:  gd.latitude  !== null && gd.latitude  !== undefined ? String(gd.latitude)  : '',
-                    longitude: gd.longitude !== null && gd.longitude !== undefined ? String(gd.longitude) : '',
-                    radius:    gd.radius    !== null && gd.radius    !== undefined ? String(gd.radius)    : ''
+                    latitude:     gd.latitude     !== null && gd.latitude     !== undefined ? String(gd.latitude)     : '',
+                    longitude:    gd.longitude    !== null && gd.longitude    !== undefined ? String(gd.longitude)    : '',
+                    radius:       gd.radius       !== null && gd.radius       !== undefined ? String(gd.radius)       : '',
+                    skipOnDayOff: gd.skipOnDayOff !== undefined ? gd.skipOnDayOff : true
                 };
             }
             // If geofence settings fail to load, keep defaults (empty fields, disabled)
@@ -309,6 +311,18 @@ export class Settings {
                                             </div>
                                         </div>
 
+                                        <!-- Skip geofencing on day-off / holiday toggle -->
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="geofence-skip-on-dayoff"
+                                                       ${this.currentSettings.geofence.skipOnDayOff ? 'checked' : ''}>
+                                                <span class="form-check-label">${t('skipGeofenceOnDayOff')}</span>
+                                            </label>
+                                            <div class="form-hint">
+                                                ${t('skipGeofenceOnDayOffHint')}
+                                            </div>
+                                        </div>
+
                                         <div class="row g-3">
                                             <!-- Latitude -->
                                             <div class="col-12 col-md-4">
@@ -363,11 +377,11 @@ export class Settings {
                                         
                                         <!-- Interactive Map -->
                                         <div class="mt-3">
-                                            <label class="form-label">Location Preview</label>
+                                            <label class="form-label">${t('locationPreview')}</label>
                                             <div id="geofence-map" style="height: 350px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: #f8f9fa;" class="mb-2"></div>
                                             <div class="text-muted small">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 2" /><path d="M12 7v5" /></svg>
-                                                Click on the map to set the work location.
+                                                ${t('geofenceMapHint')}
                                             </div>
                                         </div>
 
@@ -483,7 +497,7 @@ export class Settings {
                                                 </div>
                                             </div>
                                             <div class="form-hint mt-2">
-                                                Reports will be sent on the specified day and time each month. If the day doesn't exist in a month, it will be sent on the last day of that month.
+                                                ${t('monthlyEmailScheduleHint')}
                                             </div>
                                         </div>
 
@@ -509,29 +523,29 @@ export class Settings {
                                                     <line x1="10" y1="14" x2="21" y2="3"/>
                                                     <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"/>
                                                 </svg>
-                                                Send Now
+                                                ${t('sendNow')}
                                             </button>
                                         </div>
                                     </form>
 
                                     <!-- Delivery Logs -->
                                     <div class="mt-4">
-                                        <h4 class="card-title">Delivery Logs</h4>
+                                        <h4 class="card-title">${t('deliveryLogs')}</h4>
                                         <div class="table-responsive">
                                             <table class="table table-vcenter card-table">
                                                 <thead>
                                                     <tr>
-                                                        <th>Timestamp</th>
-                                                        <th>Recipient</th>
-                                                        <th>Month/Year</th>
-                                                        <th>Status</th>
-                                                        <th>Type</th>
+                                                        <th>${t('logTimestamp')}</th>
+                                                        <th>${t('logRecipient')}</th>
+                                                        <th>${t('logMonthYear')}</th>
+                                                        <th>${t('logStatus')}</th>
+                                                        <th>${t('logType')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="delivery-logs-tbody">
                                                     ${this.deliveryLogs.length === 0 ? `
                                                         <tr>
-                                                            <td colspan="5" class="text-muted text-center">No delivery logs available</td>
+                                                            <td colspan="5" class="text-muted text-center">${t('noDeliveryLogs')}</td>
                                                         </tr>
                                                     ` : this.deliveryLogs.map(log => `
                                                         <tr>
@@ -799,15 +813,17 @@ export class Settings {
     async handleGeofenceSave(e) {
         e.preventDefault();
 
-        const enabledInput  = document.getElementById('geofence-enabled');
-        const latInput      = document.getElementById('geofence-latitude');
-        const lngInput      = document.getElementById('geofence-longitude');
-        const radiusInput   = document.getElementById('geofence-radius');
+        const enabledInput      = document.getElementById('geofence-enabled');
+        const skipOnDayOffInput = document.getElementById('geofence-skip-on-dayoff');
+        const latInput          = document.getElementById('geofence-latitude');
+        const lngInput          = document.getElementById('geofence-longitude');
+        const radiusInput       = document.getElementById('geofence-radius');
 
-        const enabled   = enabledInput ? enabledInput.checked : false;
-        const latitude  = latInput    ? parseFloat(latInput.value)   : NaN;
-        const longitude = lngInput    ? parseFloat(lngInput.value)   : NaN;
-        const radius    = radiusInput ? parseFloat(radiusInput.value) : NaN;
+        const enabled      = enabledInput      ? enabledInput.checked      : false;
+        const skipOnDayOff = skipOnDayOffInput ? skipOnDayOffInput.checked : true;
+        const latitude     = latInput          ? parseFloat(latInput.value)    : NaN;
+        const longitude    = lngInput          ? parseFloat(lngInput.value)    : NaN;
+        const radius       = radiusInput       ? parseFloat(radiusInput.value) : NaN;
 
         this.loading.geofence = true;
         this.render();
@@ -815,6 +831,7 @@ export class Settings {
         try {
             const res = await this.callGas('saveGeofenceSettings', this.state.token, {
                 enabled,
+                skipOnDayOff,
                 latitude,
                 longitude,
                 radius
@@ -823,6 +840,7 @@ export class Settings {
             if (res && res.status === 'success') {
                 this.currentSettings.geofence = {
                     enabled,
+                    skipOnDayOff,
                     latitude:  isNaN(latitude)  ? '' : String(latitude),
                     longitude: isNaN(longitude) ? '' : String(longitude),
                     radius:    isNaN(radius)    ? '' : String(radius)
@@ -942,12 +960,12 @@ export class Settings {
 
         // Requirement 1.2 / 1.4: validate email format
         if (enabled && !recipient) {
-            this.showError('Email recipient is required when automatic emails are enabled.');
+            this.showError(t('emailRecipientRequired'));
             return;
         }
 
         if (recipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-            this.showError('Please enter a valid email address.');
+            this.showError(t('invalidEmailAddress'));
             return;
         }
 
@@ -957,17 +975,17 @@ export class Settings {
         const minute = parseInt(scheduleMinute, 10);
 
         if (isNaN(day) || day < 1 || day > 28) {
-            this.showError('Day must be between 1 and 28.');
+            this.showError(t('dayMustBeBetween'));
             return;
         }
 
         if (isNaN(hour) || hour < 0 || hour > 23) {
-            this.showError('Hour must be between 0 and 23.');
+            this.showError(t('hourMustBeBetween'));
             return;
         }
 
         if (isNaN(minute) || minute < 0 || minute > 59) {
-            this.showError('Minute must be between 0 and 59.');
+            this.showError(t('minuteMustBeBetween'));
             return;
         }
 
@@ -991,12 +1009,12 @@ export class Settings {
                     scheduleHour:   String(hour),
                     scheduleMinute: String(minute)
                 };
-                this.showSuccess('Monthly email settings saved successfully.');
+                this.showSuccess(t('monthlyEmailSaved'));
             } else {
-                this.showError(res?.message || 'Failed to save monthly email settings.');
+                this.showError(res?.message || t('monthlyEmailSaveFailed'));
             }
         } catch (error) {
-            this.showError('Failed to save monthly email settings.');
+            this.showError(t('monthlyEmailSaveFailed'));
         } finally {
             this.loading.monthlyEmail = false;
             this.render();
@@ -1014,7 +1032,7 @@ export class Settings {
             sendNowBtn.disabled = true;
             sendNowBtn.innerHTML = `
                 <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                Sending…
+                ${t('sending')}
             `;
         }
 
@@ -1022,14 +1040,14 @@ export class Settings {
             const res = await this.callGas('sendManualMonthlyReport', this.state.token);
 
             if (res && res.status === 'success') {
-                this.showSuccess('Monthly report sent successfully.');
+                this.showSuccess(t('monthlyReportSent'));
                 // Reload delivery logs to show the new entry
                 await this.loadDeliveryLogs();
             } else {
-                this.showError(res?.message || 'Failed to send monthly report.');
+                this.showError(res?.message || t('monthlyReportSendFailed'));
             }
         } catch (error) {
-            this.showError('Failed to send monthly report.');
+            this.showError(t('monthlyReportSendFailed'));
         } finally {
             if (sendNowBtn) {
                 sendNowBtn.disabled = false;
@@ -1039,7 +1057,7 @@ export class Settings {
                         <line x1="10" y1="14" x2="21" y2="3"/>
                         <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"/>
                     </svg>
-                    Send Now
+                    ${t('sendNow')}
                 `;
             }
         }
