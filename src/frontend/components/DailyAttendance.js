@@ -1,4 +1,6 @@
 // DailyAttendance.js - Daily attendance component
+import { t } from '../i18n/i18n.js';
+
 export class DailyAttendance {
     constructor(state, setState, callGas) {
         this.state = state;
@@ -334,7 +336,6 @@ export class DailyAttendance {
     }
 
     t(key) {
-        // Translation helper - assumes window.T exists
-        return window.T ? window.T(key) : key;
+        return t(key);
     }
 }

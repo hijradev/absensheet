@@ -56,17 +56,16 @@
                     <p class="text-muted small" data-i18n="login.scanQrToCheck">Scan your QR code to check in or out</p>
                 </div>
 
-                <!-- Scanner result feedback -->
-                <div id="login-scanner-result" style="display: none;" class="mb-3"></div>
-
-                <!-- Scanner container -->
-                <div id="login-reader-wrapper">
-                    <div id="login-reader"></div>
+                <!-- Open Scanner Button -->
+                <div class="text-center">
+                    <button id="btn-open-scanner-tab" class="btn btn-primary btn-lg w-100 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7v-1a2 2 0 0 1 2 -2h2" /><path d="M4 17v1a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v1" /><path d="M16 20h2a2 2 0 0 0 2 -2v-1" /><path d="M5 12l14 0" /></svg>
+                        <span data-i18n="login.openScanner">Open QR Scanner</span>
+                    </button>
+                    <p class="text-muted small mb-0" data-i18n="login.scannerOpensNewWindow">
+                        Opens in a new window for camera access
+                    </p>
                 </div>
-
-                <p class="text-center text-muted small mt-3 mb-0" data-i18n="login.pointCameraAtQr">
-                    Point your camera at your employee QR code
-                </p>
             </div>
 
         </div>

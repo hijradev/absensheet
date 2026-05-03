@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Kiosk Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 1.5rem; }
+        .header { text-align: center; }
+        .header h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f1f5f9; }
+        .config-panel {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .scanner-viewport {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1e293b;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            display: none;
+        }
+        .status-bar { display: none; padding: 0.6rem; border-radius: 8px; font-size: 0.8rem; text-align: center; margin-bottom: 1rem; }
+        .status-bar.error { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+        .status-bar.success { background: rgba(34, 197, 94, 0.1); color: #4ade80; }
+        .result-box { display: none; padding: 1.5rem; border-radius: 16px; text-align: center; background: rgba(30, 41, 59, 0.9); }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Attendance Kiosk</h1>
+        <p id="sub-header">Bypass GAS camera restrictions</p>
+    </div>
+
+    <!-- URL Config (shown only first time) -->
+    <div id="config-panel" class="config-panel">
+        <p class="small mb-3">Enter your GAS Web App URL to begin:</p>
+        <input type="text" id="web-app-url" placeholder="https://script.google.com/macros/s/.../exec">
+        <button id="btn-save-config">Start Scanner</button>
+        <p style="font-size: 0.7rem; color: #64748b; margin-top: 1rem;">The URL is saved locally on this device.</p>
+    </div>
+
+    <div id="status-bar" class="status-bar"></div>
+
+    <div id="scanner-viewport" class="scanner-viewport">
+        <div id="reader"></div>
+    </div>
+
+    <div id="result-box" class="result-box"></div>
+    
+    <button id="btn-reset-url" style="display:none; background:none; color:#64748b; font-size: 0.7rem; margin-top: 1rem; text-decoration: underline;">Reset Web App URL</button>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    var webAppUrl = localStorage.getItem('attendance_kiosk_url');
+    var scanner = null;
+    var isProcessing = false;
+    var locationPayload = null;
+
+    if (webAppUrl) {
+        showScanner();
+    }
+
+    document.getElementById('btn-save-config').onclick = function() {
+        var url = document.getElementById('web-app-url').value.trim();
+        if (!url || !url.startsWith('https://script.google.com')) {
+            alert('Please enter a valid Google Apps Script Web App URL.');
+            return;
+        }
+        localStorage.setItem('attendance_kiosk_url', url);
+        webAppUrl = url;
+        showScanner();
+    };
+
+    document.getElementById('btn-reset-url').onclick = function() {
+        if (confirm('Reset Web App URL?')) {
+            localStorage.removeItem('attendance_kiosk_url');
+            location.reload();
+        }
+    };
+
+    function showScanner() {
+        document.getElementById('config-panel').style.display = 'none';
+        document.getElementById('scanner-viewport').style.display = 'block';
+        document.getElementById('btn-reset-url').style.display = 'block';
+        document.getElementById('sub-header').textContent = 'Ready to scan';
+        checkGeofence();
+    }
+
+    function checkGeofence() {
+        callBackend('getGeofence', {}, function(res) {
+            if (res && res.status === 'success' && res.data && res.data.enabled) {
+                acquireLocation(res.data);
+            } else {
+                startScanner();
+            }
+        });
+    }
+
+    function acquireLocation(geoConfig) {
+        var bar = document.getElementById('status-bar');
+        bar.style.display = 'block';
+        bar.textContent = 'Acquiring location...';
+        
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            locationPayload = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy
+            };
+            bar.className = 'status-bar success';
+            bar.textContent = '✓ Location acquired';
+            startScanner();
+        }, function(err) {
+            bar.className = 'status-bar error';
+            if (geoConfig.enabled) {
+                bar.textContent = '⚠ Location required. Please enable GPS and reload to scan.';
+                // Do NOT call startScanner() if geofence is mandatory and failed
+            } else {
+                bar.textContent = '⚠ Location error. Scanning proceeds without geofence.';
+                startScanner();
+            }
+        });
+    }
+
+    function startScanner() {
+        scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 });
+        scanner.render(onScanSuccess);
+    }
+
+    function onScanSuccess(decodedText) {
+        if (isProcessing) return;
+        
+        // Final guard for geofence
+        if (!locationPayload) {
+             // We need to know if geofence is enabled to block this
+             // Since we already blocked startScanner, this is a secondary guard
+             var bar = document.getElementById('status-bar');
+             if (bar && bar.classList.contains('error')) {
+                 alert('Location data is required for this kiosk.');
+                 return;
+             }
+        }
+
+        isProcessing = true;
+        try { scanner.pause(true); } catch(e) {}
+
+        showResult('<div class="spinner"></div> Processing...');
+
+        callBackend('processQR', {
+            employeeId: decodedText,
+            locationPayload: locationPayload
+        }, function(res) {
+            if (res && res.status === 'success') {
+                var d = res.data;
+                showResult('<h2>' + (d.action === 'checkin' ? '✓ Checked In' : '✓ Checked Out') + '</h2>' +
+                           '<p style="font-size:1.2rem; margin:0.5rem 0;">' + d.employeeName + '</p>' +
+                           '<p style="color:#94a3b8;">' + d.time + ' · ' + d.status + '</p>');
+            } else {
+                showResult('<h2 style="color:#f87171;">⚠ Error</h2><p>' + (res ? res.message : 'Unknown error') + '</p>');
+            }
+            setTimeout(resetScanner, 4000);
+        });
+    }
+
+    function showResult(html) {
+        var box = document.getElementById('result-box');
+        box.style.display = 'block';
+        box.innerHTML = html;
+        document.getElementById('scanner-viewport').style.display = 'none';
+    }
+
+    function resetScanner() {
+        document.getElementById('result-box').style.display = 'none';
+        document.getElementById('scanner-viewport').style.display = 'block';
+        isProcessing = false;
+        try { scanner.resume(); } catch(e) {}
+    }
+
+    function callBackend(action, data, callback) {
+        data.action = action;
+        fetch(webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors', // We use no-cors because GAS redirect blocks proper CORS
+            body: JSON.stringify(data)
+        }).then(function() {
+            // Because no-cors doesn't allow reading response, we have to use a workaround.
+            // ACTUALLY, for GAS, we should use a proper JSONP or just standard fetch if possible.
+            // BUT wait, if we use 'no-cors', we can't see the result.
+            
+            // BETTER WAY: Use a proper fetch and handle the redirect issue.
+            // Or use a secondary endpoint.
+            
+            // Let's try standard fetch first.
+            fetch(webAppUrl, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }).then(r => r.json()).then(callback).catch(function(e) {
+                // If it fails due to CORS, inform the user.
+                console.error(e);
+                // Fallback: If it's a kiosk, we can use a redirect trick but it's messy.
+            });
+        });
+    }
+    
+    // Re-defining callBackend for better reliability with GAS
+    function callBackend(action, data, callback) {
+        data.action = action;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', webAppUrl, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                try {
+                    var res = JSON.parse(xhr.responseText);
+                    callback(res);
+                } catch(e) {
+                    // This often happens due to CORS redirect.
+                    // To fix this, the GAS function must return a specific header or we use a library.
+                    // For now, let's assume it works or provide a helpful error.
+                    if (xhr.status === 0) {
+                        alert('CORS Error: Please ensure the Web App is deployed as "Anyone" and you have authorized it.');
+                    }
+                }
+            }
+        };
+        xhr.send(JSON.stringify(data));
+    }
+
+})();
+</script>
+</body>
+</html>

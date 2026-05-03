@@ -1,4 +1,5 @@
-// MySchedule.js - Employee's own monthly schedule view
+import { t } from '../i18n/i18n.js';
+
 export class MySchedule {
     constructor(state, setState, callGas) {
         this.state = state;
@@ -23,11 +24,12 @@ export class MySchedule {
                 this.render();
             } else {
                 this.loading = false;
-                this._renderError(res?.message || 'Failed to load schedule.');
+                this._renderError(res?.message || t('scheduleManagement.failedToLoad'));
             }
         } catch (e) {
             this.loading = false;
-            this._renderError('Connection error while loading schedule.');
+            const errorMsg = e.message || e.toString() || t('scheduleManagement.connectionError');
+            this._renderError(`${t('scheduleManagement.connectionError')} (${errorMsg})`);
         }
     }
 
@@ -42,7 +44,7 @@ export class MySchedule {
 
         const { schedules, shifts } = this.scheduleData;
         const daysInMonth = new Date(this.year, this.month, 0).getDate();
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const monthNames = t('employeeDashboard.months');
 
         // Build shift map
         const shiftMap = {};
@@ -81,7 +83,7 @@ export class MySchedule {
                     <div class="card card-sm text-center border-success">
                         <div class="card-body py-2">
                             <div class="h3 mb-0 text-success">${workDays}</div>
-                            <div class="text-muted small">Work</div>
+                            <div class="text-muted small">${t('employeeDashboard.work')}</div>
                         </div>
                     </div>
                 </div>
@@ -89,7 +91,7 @@ export class MySchedule {
                     <div class="card card-sm text-center border-danger">
                         <div class="card-body py-2">
                             <div class="h3 mb-0 text-danger">${offDays}</div>
-                            <div class="text-muted small">Day Off</div>
+                            <div class="text-muted small">${t('employeeDashboard.dayOff')}</div>
                         </div>
                     </div>
                 </div>
@@ -97,7 +99,7 @@ export class MySchedule {
                     <div class="card card-sm text-center border-warning">
                         <div class="card-body py-2">
                             <div class="h3 mb-0 text-warning">${holidayDays}</div>
-                            <div class="text-muted small">Holiday</div>
+                            <div class="text-muted small">${t('employeeDashboard.holidayStat')}</div>
                         </div>
                     </div>
                 </div>
@@ -105,7 +107,7 @@ export class MySchedule {
                     <div class="card card-sm text-center">
                         <div class="card-body py-2">
                             <div class="h3 mb-0 text-muted">${unsetDays}</div>
-                            <div class="text-muted small">Unset</div>
+                            <div class="text-muted small">${t('employeeDashboard.unset')}</div>
                         </div>
                     </div>
                 </div>
@@ -114,7 +116,7 @@ export class MySchedule {
             <!-- Calendar grid -->
             <div class="sched-calendar">
                 <div class="row g-0 mb-1">
-                    ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d =>
+                    ${t('employeeDashboard.daysShort').map(d =>
                         `<div class="col text-center text-muted small fw-semibold py-1">${d}</div>`
                     ).join('')}
                 </div>
@@ -125,16 +127,16 @@ export class MySchedule {
 
             <!-- Schedule list for current month -->
             <div class="mt-3">
-                <h6 class="text-muted mb-2">Schedule Details</h6>
+                <h6 class="text-muted mb-2">${t('employeeDashboard.scheduleDetails')}</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Day</th>
-                                <th>Type</th>
-                                <th>Shift</th>
-                                <th>Notes</th>
+                                <th>${t('employeeDashboard.date')}</th>
+                                <th>${t('employeeDashboard.day')}</th>
+                                <th>${t('employeeDashboard.type')}</th>
+                                <th>${t('employeeDashboard.shift')}</th>
+                                <th>${t('employeeDashboard.notes')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -170,15 +172,15 @@ export class MySchedule {
             if (entry) {
                 if (entry.scheduleType === 'work') {
                     bgClass = 'bg-success-lt';
-                    typeLabel = 'W';
+                    typeLabel = t('employeeDashboard.labelWork');
                     typeClass = 'text-success fw-bold';
                 } else if (entry.scheduleType === 'off') {
                     bgClass = 'bg-danger-lt';
-                    typeLabel = 'OFF';
+                    typeLabel = t('employeeDashboard.labelOff');
                     typeClass = 'text-danger fw-bold';
                 } else if (entry.scheduleType === 'holiday') {
                     bgClass = 'bg-warning-lt';
-                    typeLabel = 'H';
+                    typeLabel = t('employeeDashboard.labelHoliday');
                     typeClass = 'text-warning fw-bold';
                 }
             }
@@ -209,7 +211,7 @@ export class MySchedule {
     }
 
     _buildScheduleList(daysInMonth, schedMap, shiftMap) {
-        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const dayNames = t('employeeDashboard.daysFull');
         let rows = '';
         for (let d = 1; d <= daysInMonth; d++) {
             const entry = schedMap[d];
@@ -217,10 +219,10 @@ export class MySchedule {
             const dow = new Date(this.year, this.month - 1, d).getDay();
             const dateStr = `${this.year}-${String(this.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const typeBadge = entry.scheduleType === 'work'
-                ? '<span class="badge bg-success-lt text-success">Work</span>'
+                ? `<span class="badge bg-success-lt text-success">${t('employeeDashboard.work')}</span>`
                 : entry.scheduleType === 'off'
-                ? '<span class="badge bg-danger-lt text-danger">Day Off</span>'
-                : '<span class="badge bg-warning-lt text-warning">Holiday</span>';
+                ? `<span class="badge bg-danger-lt text-danger">${t('employeeDashboard.dayOff')}</span>`
+                : `<span class="badge bg-warning-lt text-warning">${t('employeeDashboard.holidayStat')}</span>`;
             const shift = entry.shiftId && shiftMap[entry.shiftId]
                 ? `${this.escHtml(entry.shiftId)} (${this.escHtml(shiftMap[entry.shiftId].start_time)}–${this.escHtml(shiftMap[entry.shiftId].end_time)})`
                 : entry.shiftId ? this.escHtml(entry.shiftId) : '<span class="text-muted">—</span>';
@@ -232,7 +234,7 @@ export class MySchedule {
                 <td>${this.escHtml(entry.notes || '')}</td>
             </tr>`;
         }
-        return rows || `<tr><td colspan="5" class="text-center text-muted py-3">No schedule set for this month.</td></tr>`;
+        return rows || `<tr><td colspan="5" class="text-center text-muted py-3">${t('employeeDashboard.noScheduleForMonth')}</td></tr>`;
     }
 
     _renderLoading() {
@@ -241,7 +243,7 @@ export class MySchedule {
         container.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted small">Loading schedule...</p>
+            <p class="mt-2 text-muted small">${t('scheduleManagement.loading')}</p>
         </div>`;
     }
 
@@ -250,7 +252,7 @@ export class MySchedule {
         if (!container) return;
         container.innerHTML = `
         <div class="alert alert-danger alert-sm">${this.escHtml(msg)}</div>
-        <button class="btn btn-sm btn-primary js-my-sched-reload">Retry</button>`;
+        <button class="btn btn-sm btn-primary js-my-sched-reload">${t('retry')}</button>`;
         container.querySelector('.js-my-sched-reload')?.addEventListener('click', () => this.loadData());
     }
 

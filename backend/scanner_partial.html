@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Attendance Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        /* Header */
+        .scanner-header {
+            text-align: center;
+        }
+
+        .scanner-header .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(59, 130, 246, 0.15);
+            margin-bottom: 0.75rem;
+        }
+
+        .scanner-header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 0.25rem;
+        }
+
+        .scanner-header p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* Location status */
+        .location-bar {
+            display: none;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .location-bar.acquiring {
+            background: rgba(250, 204, 21, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(250, 204, 21, 0.25);
+        }
+
+        .location-bar.within {
+            background: rgba(34, 197, 94, 0.12);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+
+        .location-bar.outside {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .location-bar.error {
+            background: rgba(148, 163, 184, 0.12);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        /* Scanner viewport */
+        .scanner-viewport {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1e293b;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.08);
+            position: relative;
+        }
+
+        /* Override html5-qrcode styles */
+        #scanner-reader {
+            width: 100% !important;
+            border: none !important;
+        }
+
+        #scanner-reader img[alt="Info icon"] { display: none !important; }
+
+        #scanner-reader video {
+            border-radius: 14px !important;
+            object-fit: cover !important;
+        }
+
+        /* Hide the file scan option and other clutter from html5-qrcode */
+        #scanner-reader__dashboard_section_swaplink,
+        #scanner-reader__dashboard_section_csr span:nth-child(2),
+        #scanner-reader__header_message,
+        #scanner-reader > div:nth-child(1) {
+            display: none !important;
+        }
+
+        #scanner-reader__dashboard_section {
+            background: #1e293b !important;
+            padding: 0.5rem !important;
+        }
+
+        #scanner-reader__dashboard_section_csr button,
+        #scanner-reader__dashboard_section_csr select {
+            background: #334155 !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #475569 !important;
+            border-radius: 8px !important;
+            padding: 0.5rem 1rem !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.8rem !important;
+            cursor: pointer !important;
+        }
+
+        #scanner-reader__dashboard_section_csr button:hover {
+            background: #475569 !important;
+        }
+
+        /* Result feedback */
+        .scan-result {
+            display: none;
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 14px;
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .scan-result.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .scan-result.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .scan-result.processing {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .scan-result .result-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .scan-result .result-action {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .scan-result .result-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .scan-result .result-detail {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.35rem;
+        }
+
+        .scan-result .result-error-msg {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f87171;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(96, 165, 250, 0.3);
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer hint */
+        .scanner-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* Clock display */
+        .clock-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
+
+        .clock-date {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            margin-top: 0.15rem;
+        }
+
+        /* Responsive */
+        @media (max-height: 700px) {
+            .scanner-container { gap: 0.75rem; }
+            .scanner-header h1 { font-size: 1.1rem; }
+            .clock-display { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanner-container">
+
+    <!-- Clock -->
+    <div>
+        <div class="clock-display" id="clock">--:--:--</div>
+        <div class="clock-date" id="clock-date"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="scanner-header">
+        <div class="brand-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="1.5" stroke="#60a5fa" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M4 7v-1a2 2 0 0 1 2 -2h2" />
+                <path d="M4 17v1a2 2 0 0 0 2 2h2" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v1" />
+                <path d="M16 20h2a2 2 0 0 0 2 -2v-1" />
+                <path d="M5 12l14 0" />
+            </svg>
+        </div>
+        <h1>QR Attendance Scanner</h1>
+        <p>Scan employee QR code to check in or out</p>
+    </div>
+
+    <!-- Location status bar (only shown when geofencing is enabled) -->
+    <div class="location-bar" id="location-bar"></div>
+
+    <!-- Scanner viewport -->
+    <div class="scanner-viewport">
+        <div id="scanner-reader"></div>
+    </div>
+
+    <!-- Scan result feedback -->
+    <div class="scan-result" id="scan-result"></div>
+
+    <!-- Footer hint -->
+    <div class="scanner-hint">
+        Point the camera at an employee QR code.<br>
+        The scanner will automatically detect and process it.
+    </div>
+
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // --- Clock ---
+    function updateClock() {
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2, '0');
+        var m = String(now.getMinutes()).padStart(2, '0');
+        var s = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+
+        var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        document.getElementById('clock-date').textContent =
+            days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // --- State ---
+    var locationPayload = null;
+    var geofenceEnabled = false;
+    var scannerInstance = null;
+    var isProcessing = false;
+
+    // --- Geofence check ---
+    function checkGeofence() {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+            console.error('GAS environment not detected.');
+            var bar = document.getElementById('location-bar');
+            bar.style.display = 'block';
+            bar.className = 'location-bar error';
+            bar.textContent = '⚠ System Error: Please open from the main application button.';
+            // Fallback for dev: still start scanner but it won't be able to save
+            startScanner();
+            return;
+        }
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (res && res.status === 'success' && res.data && res.data.enabled) {
+                    geofenceEnabled = true;
+                    acquireLocation(res.data);
+                } else {
+                    geofenceEnabled = false;
+                    startScanner();
+                }
+            })
+            .withFailureHandler(function(err) {
+                console.error('Failed to get geofence settings:', err);
+                geofenceEnabled = false;
+                startScanner();
+            })
+            .getGeofenceSettingsPublic();
+    }
+
+    function acquireLocation(geoConfig) {
+        var bar = document.getElementById('location-bar');
+        bar.style.display = 'block';
+        bar.className = 'location-bar acquiring';
+        bar.textContent = '📡 Acquiring location…';
+
+        if (!navigator.geolocation) {
+            bar.className = 'location-bar error';
+            bar.textContent = '⚠ Location services not supported by this browser';
+            // Still start scanner — backend will validate
+            startScanner();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                locationPayload = {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy
+                };
+
+                // Client-side distance check (Haversine)
+                if (geoConfig.latitude != null && geoConfig.longitude != null && geoConfig.radius != null) {
+                    var d = haversine(geoConfig.latitude, geoConfig.longitude, pos.coords.latitude, pos.coords.longitude);
+                    if (d <= geoConfig.radius) {
+                        bar.className = 'location-bar within';
+                        bar.textContent = '✓ Within work zone (' + d + 'm)';
+                    } else {
+                        bar.className = 'location-bar outside';
+                        bar.textContent = '✗ Outside work zone (' + d + 'm away, max ' + geoConfig.radius + 'm)';
+                    }
+                } else {
+                    bar.className = 'location-bar within';
+                    bar.textContent = '✓ Location acquired';
+                }
+
+                startScanner();
+            },
+            function(err) {
+                bar.className = 'location-bar error';
+                var msgs = {
+                    1: '⚠ Location permission denied',
+                    2: '⚠ Unable to determine location',
+                    3: '⚠ Location request timed out'
+                };
+                bar.textContent = msgs[err.code] || '⚠ Location error';
+                // Still start scanner — backend will decide
+                startScanner();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+    }
+
+    function haversine(lat1, lng1, lat2, lng2) {
+        var R = 6371000;
+        var p1 = lat1 * Math.PI / 180;
+        var p2 = lat2 * Math.PI / 180;
+        var dp = (lat2 - lat1) * Math.PI / 180;
+        var dl = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dp/2) * Math.sin(dp/2) +
+                Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+        return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    // --- Scanner ---
+    function startScanner() {
+        if (scannerInstance) return;
+
+        scannerInstance = new Html5QrcodeScanner('scanner-reader', {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            rememberLastUsedCamera: true,
+            showTorchButtonIfSupported: true
+        }, false);
+
+        scannerInstance.render(onScanSuccess, function() {});
+    }
+
+    function onScanSuccess(decodedText) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        // Pause scanner
+        if (scannerInstance) {
+            try { scannerInstance.pause(true); } catch(e) {}
+        }
+
+        // Show processing
+        showResult('processing', '', '', '<span class="spinner"></span> Processing…', '');
+
+        // Call backend
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (res && res.status === 'success') {
+                    var d = res.data;
+                    var action = d.action === 'checkin' ? '✓ Checked In' : '✓ Checked Out';
+                    var statusClass = d.status === 'Tepat Waktu' ? '#4ade80' : '#fbbf24';
+                    showResult('success', action, d.employeeName, d.time + '  ·  <span style="color:' + statusClass + '">' + escHtml(d.status) + '</span>', '');
+                } else {
+                    showResult('error', '', '', '', res ? res.message : 'Attendance failed.');
+                }
+                resumeAfterDelay();
+            })
+            .withFailureHandler(function(err) {
+                showResult('error', '', '', '', 'Connection error. Please try again.');
+                resumeAfterDelay();
+            })
+            .processAttendanceByQR(decodedText, locationPayload || undefined);
+    }
+
+    function showResult(type, action, name, detail, errorMsg) {
+        var el = document.getElementById('scan-result');
+        el.style.display = 'block';
+        el.className = 'scan-result ' + type;
+
+        var html = '';
+        if (type === 'success') {
+            html = '<div class="result-icon">✅</div>' +
+                   '<div class="result-action">' + escHtml(action) + '</div>' +
+                   '<div class="result-name">' + escHtml(name) + '</div>' +
+                   '<div class="result-detail">' + detail + '</div>';
+        } else if (type === 'error') {
+            html = '<div class="result-icon">⚠️</div>' +
+                   '<div class="result-error-msg">' + escHtml(errorMsg) + '</div>';
+        } else {
+            // processing
+            html = '<div class="result-detail">' + detail + '</div>';
+        }
+        el.innerHTML = html;
+    }
+
+    function resumeAfterDelay() {
+        setTimeout(function() {
+            document.getElementById('scan-result').style.display = 'none';
+            isProcessing = false;
+            if (scannerInstance) {
+                try { scannerInstance.resume(); } catch(e) {}
+            }
+        }, 4000);
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    // --- Init ---
+    checkGeofence();
+
+})();
+</script>
+
+</body>
+</html>

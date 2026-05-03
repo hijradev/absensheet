@@ -1,5 +1,9 @@
 // Helper.gs
 
+// Execution-context cache for Spreadsheet objects to avoid redundant openById() calls
+// which are slow and can lead to 30s timeouts on complex requests.
+var _ssCache = {};
+
 const CACHE_TIMEOUT = 1800; // 30 minutes — short enough to reflect shift/employee changes promptly
 const CACHE = CacheService.getScriptCache();
 
@@ -79,13 +83,23 @@ function verifyToken(token) {
 // ===== SPREADSHEET HELPERS =====
 
 function getSheetData(spreadsheetId, sheetName) {
+  if (!spreadsheetId) return [];
   try {
-    const ss = SpreadsheetApp.openById(spreadsheetId);
+    // Use execution-context cache if available
+    let ss = _ssCache[spreadsheetId];
+    if (!ss) {
+      ss = SpreadsheetApp.openById(spreadsheetId);
+      _ssCache[spreadsheetId] = ss;
+    }
+    
     const sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return [];
+    if (!sheet) {
+      console.warn("Sheet not found: " + sheetName + " in " + spreadsheetId);
+      return [];
+    }
     return sheet.getDataRange().getValues();
   } catch (e) {
-    console.error("Error reading sheet:", e);
+    console.error("Error reading sheet " + sheetName + " from " + spreadsheetId + ":", e);
     return [];
   }
 }

@@ -130,7 +130,7 @@ export class ScheduleManagement {
             );
         }
 
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const monthNames = this.t('employeeDashboard.months');
         const hasPending = Object.keys(this.pendingChanges).length > 0;
 
         container.innerHTML = `
@@ -204,7 +204,7 @@ export class ScheduleManagement {
                                     ${days.map(d => {
                                         const dow = new Date(this.year, this.month - 1, d).getDay();
                                         const isWeekend = dow === 0 || dow === 6;
-                                        const dowLabel = ['Su','Mo','Tu','We','Th','Fr','Sa'][dow];
+                                        const dowLabel = this.t('employeeDashboard.daysShort')[dow];
                                         return `<th class="text-center ${isWeekend ? 'table-warning' : ''}" style="min-width:52px; font-size:11px;">
                                             <div>${d}</div>
                                             <div class="text-muted" style="font-size:10px;">${dowLabel}</div>
@@ -387,7 +387,7 @@ export class ScheduleManagement {
         const saved = (schedules || []).find(s => s.employeeId === empId && s.day === day);
         const current = pending || saved || {};
 
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const monthNames = this.t('employeeDashboard.months');
         const title = document.getElementById('sched-cell-modal-title');
         if (title) title.textContent = `${emp ? emp.name : empId} — ${day} ${monthNames[this.month - 1]} ${this.year}`;
 

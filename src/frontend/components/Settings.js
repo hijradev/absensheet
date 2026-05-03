@@ -360,6 +360,16 @@ export class Settings {
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Interactive Map -->
+                                        <div class="mt-3">
+                                            <label class="form-label">Location Preview</label>
+                                            <div id="geofence-map" style="height: 350px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: #f8f9fa;" class="mb-2"></div>
+                                            <div class="text-muted small">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 2" /><path d="M12 7v5" /></svg>
+                                                Click on the map to set the work location.
+                                            </div>
+                                        </div>
 
                                         <div class="d-flex gap-2 mt-3">
                                             <button type="button" id="geofence-use-location-btn" class="btn btn-secondary">
@@ -624,6 +634,85 @@ export class Settings {
                 this.currentSettings.monthlyEmail.scheduleMinute = minuteInput.value;
             });
         }
+        
+        // Initialise geofence map if visible
+        this.initGeofenceMap();
+    }
+
+    initGeofenceMap() {
+        const mapEl = document.getElementById('geofence-map');
+        if (!mapEl) return;
+
+        const latInput = document.getElementById('geofence-latitude');
+        const lngInput = document.getElementById('geofence-longitude');
+        const radInput = document.getElementById('geofence-radius');
+
+        let lat = parseFloat(latInput.value);
+        let lng = parseFloat(lngInput.value);
+        let rad = parseFloat(radInput.value) || 100;
+
+        // Default to Indonesia center if no coords
+        if (isNaN(lat) || isNaN(lng)) {
+            lat = -6.2088;
+            lng = 106.8456;
+        }
+
+        if (this.map) {
+            this.map.remove();
+        }
+
+        try {
+            this.map = L.map('geofence-map').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(this.map);
+
+            this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
+            this.circle = L.circle([lat, lng], {
+                color: '#2fb344',
+                fillColor: '#2fb344',
+                fillOpacity: 0.2,
+                radius: rad
+            }).addTo(this.map);
+
+            // Sync marker drag to inputs
+            this.marker.on('dragend', (e) => {
+                const pos = e.target.getLatLng();
+                latInput.value = pos.lat.toFixed(6);
+                lngInput.value = pos.lng.toFixed(6);
+                this.circle.setLatLng(pos);
+            });
+
+            // Map click to move marker
+            this.map.on('click', (e) => {
+                const pos = e.latlng;
+                this.marker.setLatLng(pos);
+                this.circle.setLatLng(pos);
+                latInput.value = pos.lat.toFixed(6);
+                lngInput.value = pos.lng.toFixed(6);
+            });
+
+            // Input listeners to sync to map
+            const updateMap = () => {
+                const nLat = parseFloat(latInput.value);
+                const nLng = parseFloat(lngInput.value);
+                const nRad = parseFloat(radInput.value) || 0;
+                if (!isNaN(nLat) && !isNaN(nLng)) {
+                    const pos = [nLat, nLng];
+                    this.marker.setLatLng(pos);
+                    this.circle.setLatLng(pos);
+                    if (this.circle.getRadius() !== nRad) this.circle.setRadius(nRad);
+                }
+            };
+
+            latInput.addEventListener('input', updateMap);
+            lngInput.addEventListener('input', updateMap);
+            radInput.addEventListener('input', updateMap);
+
+        } catch (e) {
+            console.error('Leaflet error:', e);
+            mapEl.innerHTML = `<div class="p-4 text-center text-danger">Failed to load map. Please check your connection.</div>`;
+        }
     }
 
     async handleOrganizationSave(e) {
@@ -738,6 +827,15 @@ export class Settings {
                     longitude: isNaN(longitude) ? '' : String(longitude),
                     radius:    isNaN(radius)    ? '' : String(radius)
                 };
+                
+                // Synchronize with global state immediately
+                this.setState({
+                    geofenceEnabled: enabled,
+                    geofenceWorkLat: isNaN(latitude) ? null : latitude,
+                    geofenceWorkLng: isNaN(longitude) ? null : longitude,
+                    geofenceRadius: isNaN(radius) ? null : radius
+                });
+
                 this.showSuccess(t('organizationSettingsSaved'));
             } else {
                 this.showError(res?.message || t('failedToSaveSettings'));

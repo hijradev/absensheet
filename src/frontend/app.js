@@ -1,4 +1,4 @@
-import { Html5QrcodeScanner } from 'html5-qrcode';
+
 import QRCode from 'qrcode';
 import * as bootstrap from 'bootstrap';
 import '@tabler/core/dist/js/tabler.min.js';
@@ -14,8 +14,9 @@ if (typeof window !== 'undefined') {
 // Initialize language
 initLanguage();
 
-// Make t function available globally for HTML data-i18n attributes
+// Make t function available globally for components and HTML attributes
 window.absenT = t;
+window.T = t;
 
 // --- HTML Escaping (XSS prevention) ---
 // All user-supplied data rendered into innerHTML must go through this.
@@ -55,7 +56,6 @@ const state = {
 
     // Employee
     attendanceHistory: [],
-    scannerActive: false,
 
     // Admin — split into dashboard data and management data
     adminView: 'dashboard',
@@ -120,9 +120,6 @@ const state = {
     // Settings
     organizationName: '',
 
-    // Login-page QR scanner
-    loginScannerActive: false,
-    loginScannerResult: null,  // { type: 'success'|'error', message, detail }
 
     // Geofence / location
     geofenceEnabled: false,
@@ -163,7 +160,10 @@ const callGas = (functionName, ...args) => {
         if (typeof google !== 'undefined' && google.script) {
             google.script.run
                 .withSuccessHandler(resolve)
-                .withFailureHandler(reject)
+                .withFailureHandler(err => {
+                    console.error(`GAS Error in ${functionName}:`, err);
+                    reject(err);
+                })
                 [functionName](...args);
         } else {
             // Mock fallback for local dev
@@ -289,9 +289,8 @@ const loadView = async (viewName) => {
         } else if (viewName === 'employee') {
             loadEmployeeData();
         } else if (viewName === 'login') {
-            // Start the login-page QR scanner after a short delay for DOM to settle
-            setTimeout(startLoginScanner, 300);
             initLoginTabs();
+            initScannerButton();
         }
     } catch (err) {
         setState({ 
@@ -303,7 +302,7 @@ const loadView = async (viewName) => {
 
 // --- Rendering ---
 
-let html5QrcodeScanner = null;
+
 
 // Targeted render helpers — each only touches its own DOM section.
 
@@ -400,13 +399,6 @@ function renderEmployeeView() {
     const nameEl = document.getElementById('employee-name');
     if (nameEl) nameEl.textContent = state.user?.name || '';
 
-    const btnOpen = document.getElementById('btn-open-scanner');
-    const btnClose = document.getElementById('btn-close-scanner');
-    const reader = document.getElementById('reader');
-    if (btnOpen) btnOpen.style.display = state.scannerActive ? 'none' : 'inline-block';
-    if (btnClose) btnClose.style.display = state.scannerActive ? 'inline-block' : 'none';
-    if (reader) reader.style.display = state.scannerActive ? 'block' : 'none';
-
     // Check In / Check Out button loading state
     const btnCheckin = document.getElementById('btn-checkin');
     const btnCheckout = document.getElementById('btn-checkout');
@@ -417,8 +409,11 @@ function renderEmployeeView() {
     const checkinText = document.getElementById('checkin-btn-text');
     const checkoutText = document.getElementById('checkout-btn-text');
 
-    if (btnCheckin) btnCheckin.disabled = state.checkInLoading || state.checkOutLoading;
-    if (btnCheckout) btnCheckout.disabled = state.checkInLoading || state.checkOutLoading;
+    const checkinProcessing = state.checkInLoading || state.checkOutLoading || (state.geofenceEnabled && state.locationStatus === 'acquiring');
+    const checkoutProcessing = state.checkInLoading || state.checkOutLoading || (state.geofenceEnabled && state.locationStatus === 'acquiring');
+
+    if (btnCheckin) btnCheckin.disabled = checkinProcessing;
+    if (btnCheckout) btnCheckout.disabled = checkoutProcessing;
     if (checkinSpinner) checkinSpinner.style.display = state.checkInLoading ? 'inline-block' : 'none';
     if (checkoutSpinner) checkoutSpinner.style.display = state.checkOutLoading ? 'inline-block' : 'none';
     if (checkinIcon) checkinIcon.style.display = state.checkInLoading ? 'none' : 'inline-block';
@@ -436,28 +431,53 @@ function renderEmployeeView() {
     // Load employee schedule
     loadEmployeeSchedule();
 
-    // --- Location status badge and button visibility ---
+    // --- Location alerts and status ---
+    const locationAlerts    = document.getElementById('location-alerts-container');
     const locationContainer = document.getElementById('location-status-container');
     const locationBadge     = document.getElementById('location-status-badge');
     const distanceDisplay   = document.getElementById('location-distance-display');
     const btnCheckinEl      = document.getElementById('btn-checkin');
     const btnCheckoutEl     = document.getElementById('btn-checkout');
 
+    if (locationAlerts) {
+        let alertHtml = '';
+        const radius = state.geofenceRadius || 0;
+        const dist = state.locationDistance;
+
+        if (state.locationStatus === 'acquiring') {
+            alertHtml = `<div class="alert alert-warning mb-0 border-0 shadow-sm d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                <div>${t('employeeDashboard.locationAcquiring')}</div>
+            </div>`;
+        } else if (state.locationStatus === 'within') {
+            alertHtml = `<div class="alert alert-success mb-0 border-0 shadow-sm d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-check me-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg>
+                <div>${t('employeeDashboard.locationWithinRadius').replace('{radius}', radius)}</div>
+            </div>`;
+        } else if (state.locationStatus === 'outside') {
+            alertHtml = `<div class="alert alert-danger mb-0 border-0 shadow-sm d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-alert-circle me-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                <div>${t('employeeDashboard.locationOutsideRadius').replace('{distance}', dist).replace('{radius}', radius)}</div>
+            </div>`;
+        } else if (state.locationStatus === 'error' && state.locationErrorMessage) {
+            alertHtml = `<div class="alert alert-secondary mb-0 border-0 shadow-sm d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-exclamation-circle me-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 9v4" /><path d="M12 16h.01" /></svg>
+                <div>${escHtml(state.locationErrorMessage)}</div>
+            </div>`;
+        }
+        locationAlerts.innerHTML = alertHtml;
+    }
+
     if (locationContainer && locationBadge) {
-        if (!state.geofenceEnabled) {
-            // Geofencing disabled: hide badge, show buttons unconditionally
-            locationContainer.style.display = 'none';
-            if (btnCheckinEl)  btnCheckinEl.style.display  = '';
-            if (btnCheckoutEl) btnCheckoutEl.style.display = '';
-        } else {
+        if (state.geofenceEnabled) {
             locationContainer.style.display = 'block';
 
             const badgeConfigs = {
-                acquiring: { cls: 'bg-warning text-dark', label: 'Acquiring\u2026' },
-                within:    { cls: 'bg-success text-white', label: 'Within Zone' },
-                outside:   { cls: 'bg-danger text-white',  label: 'Outside Zone' },
-                error:     { cls: 'bg-secondary text-white', label: 'Location Error' },
-                disabled:  { cls: 'bg-secondary text-white', label: 'Location Disabled' }
+                acquiring: { cls: 'bg-warning text-dark', label: t('employeeDashboard.acquiring') || 'Acquiring\u2026' },
+                within:    { cls: 'bg-success text-white', label: t('employeeDashboard.within') || 'Within Zone' },
+                outside:   { cls: 'bg-danger text-white',  label: t('employeeDashboard.outside') || 'Outside Zone' },
+                error:     { cls: 'bg-secondary text-white', label: t('employeeDashboard.error') || 'Location Error' },
+                disabled:  { cls: 'bg-secondary text-white', label: t('employeeDashboard.disabled') || 'Location Disabled' }
             };
             const cfg = badgeConfigs[state.locationStatus] || badgeConfigs.error;
             locationBadge.className = `badge fs-6 px-3 py-2 ${cfg.cls}`;
@@ -476,10 +496,40 @@ function renderEmployeeView() {
                 }
             }
 
-            // Show/hide buttons based on location status
+            // Show/hide and enable/disable buttons based on location status
             const canSubmit = state.locationStatus === 'within';
-            if (btnCheckinEl)  btnCheckinEl.style.display  = canSubmit ? '' : 'none';
-            if (btnCheckoutEl) btnCheckoutEl.style.display = canSubmit ? '' : 'none';
+            if (btnCheckinEl) {
+                btnCheckinEl.style.display = canSubmit ? '' : 'none';
+                btnCheckinEl.disabled = !canSubmit || checkinProcessing;
+            }
+            if (btnCheckoutEl) {
+                btnCheckoutEl.style.display = canSubmit ? '' : 'none';
+                btnCheckoutEl.disabled = !canSubmit || checkoutProcessing;
+            }
+
+            updateEmployeeMap();
+        } else if (state.geofenceWorkLat && state.geofenceWorkLng) {
+            // Even if geofencing is NOT enabled, show the map if office coordinates exist
+            locationContainer.style.display = 'block';
+            
+            // Show a simpler status or just the distance
+            if (locationBadge) {
+                locationBadge.className = 'badge bg-secondary-lt text-secondary fs-6 px-3 py-2';
+                locationBadge.textContent = t('employeeDashboard.locationTracking');
+            }
+            
+            if (distanceDisplay && state.locationDistance !== null) {
+                distanceDisplay.textContent = `${state.locationDistance}m from work location.`;
+            }
+
+            if (btnCheckinEl)  btnCheckinEl.style.display  = '';
+            if (btnCheckoutEl) btnCheckoutEl.style.display = '';
+            
+            updateEmployeeMap();
+        } else {
+            locationContainer.style.display = 'none';
+            if (btnCheckinEl)  btnCheckinEl.style.display  = '';
+            if (btnCheckoutEl) btnCheckoutEl.style.display = '';
         }
     }
 
@@ -497,10 +547,110 @@ function renderEmployeeView() {
             <tr>
                 <td>${escHtml(log.date)}</td>
                 <td>${escHtml(log.checkInTime)}</td>
-                <td><span class="badge text-white ${log.checkInStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-danger'}">${escHtml(log.checkInStatus)}</span></td>
+                <td><span class="badge text-white ${log.checkInStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-danger'}">${t(log.checkInStatus === 'Tepat Waktu' ? 'onTime' : (log.checkInStatus === 'Terlambat' ? 'late' : 'absent'))}</span></td>
                 <td>${escHtml(log.checkOutTime)}</td>
-                <td><span class="badge text-white ${log.checkOutStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-warning'}">${escHtml(log.checkOutStatus)}</span></td>
+                <td><span class="badge text-white ${log.checkOutStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-warning'}">${t(log.checkOutStatus === 'Tepat Waktu' ? 'onTime' : 'absent')}</span></td>
             </tr>`).join('');
+    }
+}
+
+// Map instances for reuse
+let _employeeMap = null;
+let _employeeMarker = null;
+let _employeeWorkMarker = null;
+let _employeeCircle = null;
+
+function updateEmployeeMap() {
+    const mapEl = document.getElementById('employee-location-map');
+    if (!mapEl) return;
+
+    // Show map if we have work coordinates OR if we have acquired a user position
+    if ((!state.geofenceWorkLat && !state.locationPayload) || state.locationStatus === 'disabled') {
+        mapEl.style.display = 'none';
+        return;
+    }
+
+    mapEl.style.display = 'block';
+    const userLat = state.locationPayload?.latitude;
+    const userLng = state.locationPayload?.longitude;
+    const workLat = state.geofenceWorkLat;
+    const workLng = state.geofenceWorkLng;
+    const radius  = state.geofenceRadius;
+
+    // Center map on user if available, otherwise on work location
+    const centerLat = userLat || workLat;
+    const centerLng = userLng || workLng;
+
+    if (!centerLat || !centerLng) return;
+
+    try {
+        if (!_employeeMap) {
+            _employeeMap = L.map('employee-location-map').setView([centerLat, centerLng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(_employeeMap);
+        } else {
+            _employeeMap.invalidateSize();
+        }
+
+        // Work Marker and Geofence Circle (if work coordinates exist)
+        if (workLat && workLng) {
+            const workPos = [workLat, workLng];
+
+            // Work Marker
+            if (!_employeeWorkMarker) {
+                _employeeWorkMarker = L.marker(workPos, { 
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    }),
+                    title: 'Work Location' 
+                }).addTo(_employeeMap);
+                _employeeWorkMarker.bindPopup('Work Location');
+            } else {
+                _employeeWorkMarker.setLatLng(workPos);
+            }
+
+            // Geofence Circle
+            const statusColor = state.locationStatus === 'within' ? '#2fb344' : '#d63939';
+            if (!_employeeCircle) {
+                _employeeCircle = L.circle(workPos, {
+                    color: statusColor,
+                    fillColor: statusColor,
+                    fillOpacity: 0.15,
+                    radius: radius
+                }).addTo(_employeeMap);
+            } else {
+                _employeeCircle.setLatLng(workPos);
+                _employeeCircle.setRadius(radius);
+                _employeeCircle.setStyle({ color: statusColor, fillColor: statusColor });
+            }
+        }
+
+        // User Marker (if user coordinates exist)
+        if (userLat && userLng) {
+            const userPos = [userLat, userLng];
+            if (!_employeeMarker) {
+                _employeeMarker = L.marker(userPos, { title: 'Your Location' }).addTo(_employeeMap);
+                _employeeMarker.bindPopup('You are here').openPopup();
+            } else {
+                _employeeMarker.setLatLng(userPos);
+            }
+
+            // Adjust view to fit both if possible
+            if (workLat && workLng) {
+                const bounds = L.latLngBounds([[userLat, userLng], [workLat, workLng]]);
+                _employeeMap.fitBounds(bounds, { padding: [30, 30] });
+            } else {
+                _employeeMap.setView([userLat, userLng], 15);
+            }
+        }
+    } catch (e) {
+        console.error('Leaflet Employee Map Error:', e);
     }
 }
 
@@ -1710,16 +1860,16 @@ function attStatusBadge(status) {
         'Holiday':     'bg-warning text-white'
     };
     const labelMap = {
-        'Tepat Waktu': 'On Time',
-        'Terlambat':   'Late',
-        'Pulang Awal': 'Left Early',
-        'Tidak Hadir': 'Not Present',
-        'Cuti':        'Cuti',
-        'Izin':        'Izin',
-        'Sakit':       'Sakit',
-        'Libur':       'Libur',
-        'Day Off':     'Day Off',
-        'Holiday':     'Holiday'
+        'Tepat Waktu': t('onTime'),
+        'Terlambat':   t('late'),
+        'Pulang Awal': t('absent'),
+        'Tidak Hadir': t('notPresent'),
+        'Cuti':        t('annualLeave'),
+        'Izin':        t('permission'),
+        'Sakit':       t('sickLeave'),
+        'Libur':       t('holiday'),
+        'Day Off':     t('employeeDashboard.dayOff'),
+        'Holiday':     t('scheduleManagement.holiday')
     };
     if (!status) return '<span class="text-muted">—</span>';
     const cls   = map[status]   || 'bg-secondary text-white';
@@ -1880,16 +2030,16 @@ function manualAttStatusBadge(status) {
         'Holiday':     'bg-warning text-white'
     };
     const labelMap = {
-        'Tepat Waktu': 'On Time',
-        'Terlambat':   'Late',
-        'Pulang Awal': 'Left Early',
-        'Tidak Hadir': 'Not Present',
-        'Izin':        'Permission',
-        'Sakit':       'Sick Leave',
-        'Cuti':        'Annual Leave',
-        'Libur':       'Libur',
-        'Day Off':     'Day Off',
-        'Holiday':     'Holiday'
+        'Tepat Waktu': t('onTime'),
+        'Terlambat':   t('late'),
+        'Pulang Awal': t('absent'),
+        'Tidak Hadir': t('notPresent'),
+        'Izin':        t('permission'),
+        'Sakit':       t('sickLeave'),
+        'Cuti':        t('annualLeave'),
+        'Libur':       t('holiday'),
+        'Day Off':     t('employeeDashboard.dayOff'),
+        'Holiday':     t('scheduleManagement.holiday')
     };
     if (!status) return '<span class="text-muted">—</span>';
     const cls   = map[status]      || 'bg-secondary text-white';
@@ -2187,7 +2337,6 @@ const doLogin = async (e) => {
         if (res && res.status === 'success') {
             localStorage.setItem('absen_token', res.data.token);
             localStorage.setItem('absen_user', JSON.stringify(res.data.user));
-            stopLoginScanner(); // stop login-page scanner before navigating away
             setState({ token: res.data.token, user: res.data.user });
             loadView(res.data.user.role === 'Admin' ? 'admin' : 'employee');
         } else {
@@ -2208,7 +2357,6 @@ const logout = () => {
     localStorage.removeItem('absen_token');
     localStorage.removeItem('absen_user');
     setState({ token: null, user: null });
-    stopLoginScanner(); // clean up any existing scanner before restarting
     loadView('login');
 };
 
@@ -2247,8 +2395,9 @@ const loadEmployeeData = async (showPageSpinner = true) => {
 
         setState(updates);
 
-        // Kick off location acquisition if geofencing is enabled
-        if (updates.geofenceEnabled) {
+        // Always attempt to acquire location if office coordinates are available, 
+        // even if enforcement (geofenceEnabled) is currently off.
+        if (state.geofenceWorkLat && state.geofenceWorkLng) {
             startLocationAcquisition();
         } else {
             setState({ locationStatus: 'disabled', locationPayload: null });
@@ -2279,10 +2428,13 @@ const startLocationAcquisition = async () => {
 
         // Compute client-side distance for UX (server is authoritative)
         let distance = null;
-        let status = 'within';
+        let status = 'error'; // Default to error if geofence is enabled but coords missing
         if (state.geofenceWorkLat !== null && state.geofenceWorkLng !== null && state.geofenceRadius !== null) {
             distance = Math.round(haversineDistance(state.geofenceWorkLat, state.geofenceWorkLng, coords.latitude, coords.longitude));
             status = distance <= state.geofenceRadius ? 'within' : 'outside';
+        } else {
+            status = 'error';
+            setState({ locationErrorMessage: 'Work location not configured. Please contact administrator.' });
         }
 
         setState({
@@ -2317,6 +2469,15 @@ const startLocationAcquisition = async () => {
 };
 
 const doCheckIn = async () => {
+    if (state.geofenceEnabled && state.locationStatus !== 'within') {
+        setState({ errorMessage: state.locationErrorMessage || 'You must be within the allowed work zone to check in.' });
+        return;
+    }
+    if (state.geofenceEnabled && !state.locationPayload) {
+        setState({ errorMessage: 'Location data is required for check-in. Please wait for GPS or refresh.' });
+        return;
+    }
+
     setState({ checkInLoading: true, successMessage: '', errorMessage: '' });
     try {
         const res = await callGas('checkIn', state.token, state.locationPayload || undefined);
@@ -2332,6 +2493,15 @@ const doCheckIn = async () => {
 };
 
 const doCheckOut = async () => {
+    if (state.geofenceEnabled && state.locationStatus !== 'within') {
+        setState({ errorMessage: state.locationErrorMessage || 'You must be within the allowed work zone to check out.' });
+        return;
+    }
+    if (state.geofenceEnabled && !state.locationPayload) {
+        setState({ errorMessage: 'Location data is required for check-out. Please wait for GPS or refresh.' });
+        return;
+    }
+
     setState({ checkOutLoading: true, successMessage: '', errorMessage: '' });
     try {
         const res = await callGas('checkOut', state.token, state.locationPayload || undefined);
@@ -2346,122 +2516,52 @@ const doCheckOut = async () => {
     }
 };
 
-const startScanner = () => {
-    setState({ scannerActive: true });
-    setTimeout(() => {
-        html5QrcodeScanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
-        html5QrcodeScanner.render(onScanSuccess, () => {});
-    }, 100);
-};
+// --- Open Standalone Scanner Page ---
+// Opens the QR scanner page in a new tab where camera access works
+// (GAS serves the main app in an iframe that blocks getUserMedia)
 
-const stopScanner = () => {
-    if (html5QrcodeScanner) html5QrcodeScanner.clear();
-    setState({ scannerActive: false });
-};
+const openScannerPage = () => {
+    const btn = document.getElementById('btn-open-scanner-tab');
+    const originalContent = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Loading...`;
+    }
 
-const onScanSuccess = (decodedText) => {
-    if (decodedText === state.user.id) {
-        stopScanner();
-        // Determine action: if already checked in today (history has today's entry with no checkout), do checkout
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const todayRecord = state.attendanceHistory.find(r => r.date === todayStr);
-        if (todayRecord && todayRecord.checkInTime && !todayRecord.checkOutTime) {
-            doCheckOut();
-        } else {
-            doCheckIn();
+    const resetBtn = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
         }
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+            .withSuccessHandler((url) => {
+                resetBtn();
+                if (url) {
+                    const baseUrl = url.split('?')[0].split('#')[0];
+                    const scannerUrl = baseUrl + '?page=scanner';
+                    window.open(scannerUrl, '_blank');
+                }
+            })
+            .withFailureHandler(() => {
+                resetBtn();
+                setState({ errorMessage: 'Failed to get scanner URL. Please try again.' });
+            })
+            .getScriptUrl();
     } else {
-        setState({ errorMessage: 'QR Code does not match your employee ID.' });
+        // Fallback for dev/mock mode
+        resetBtn();
+        window.open('?page=scanner', '_blank');
     }
 };
 
-// --- Login-page QR Scanner (no auth required) ---
-
-let loginQrcodeScanner = null;
-
-const startLoginScanner = () => {
-    const readerEl = document.getElementById('login-reader');
-    if (!readerEl) return;
-    if (loginQrcodeScanner) return; // already running
-
-    setState({ loginScannerActive: true, loginScannerResult: null });
-    loginQrcodeScanner = new Html5QrcodeScanner('login-reader', { fps: 10, qrbox: 220 }, false);
-    loginQrcodeScanner.render(onLoginScanSuccess, () => {});
-};
-
-const stopLoginScanner = () => {
-    if (loginQrcodeScanner) {
-        loginQrcodeScanner.clear().catch(() => {});
-        loginQrcodeScanner = null;
-    }
-    setState({ loginScannerActive: false });
-};
-
-const onLoginScanSuccess = async (decodedText) => {
-    // Pause scanner while processing
-    if (loginQrcodeScanner) {
-        loginQrcodeScanner.pause(true);
-    }
-
-    // Show processing state
-    const resultEl = document.getElementById('login-scanner-result');
-    if (resultEl) {
-        resultEl.style.display = 'block';
-        resultEl.innerHTML = `<div class="scan-success"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div><span class="text-muted">Processing…</span></div>`;
-    }
-
-    try {
-        const res = await callGas('processAttendanceByQR', decodedText, state.locationPayload || undefined);
-        if (res && res.status === 'success') {
-            const d = res.data;
-            const actionLabel = d.action === 'checkin' ? 'Checked In' : 'Checked Out';
-            const statusColor = d.status === 'Tepat Waktu' ? 'text-success' : 'text-warning';
-            const icon = d.action === 'checkin'
-                ? `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="text-success mb-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>`
-                : `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="text-primary mb-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 12h12l-3 -3" /><path d="M18 15l3 -3" /></svg>`;
-
-            if (resultEl) {
-                resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="scan-success">
-                    ${icon}
-                    <div class="fw-bold fs-5">${escHtml(actionLabel)}</div>
-                    <div class="fw-semibold mt-1">${escHtml(d.employeeName)}</div>
-                    <div class="text-muted small mt-1">${escHtml(d.time)} &nbsp;·&nbsp; <span class="${statusColor} fw-semibold">${escHtml(d.status)}</span></div>
-                </div>`;
-            }
-
-            // Resume scanner after 4 seconds for the next person
-            setTimeout(() => {
-                if (resultEl) resultEl.style.display = 'none';
-                if (loginQrcodeScanner) loginQrcodeScanner.resume();
-            }, 4000);
-
-        } else {
-            const msg = res?.message || 'Attendance failed.';
-            if (resultEl) {
-                resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="scan-error">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="text-danger mb-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" /><path d="M12 16h.01" /></svg>
-                    <div class="fw-semibold text-danger">${escHtml(msg)}</div>
-                </div>`;
-            }
-            // Resume scanner after 3 seconds
-            setTimeout(() => {
-                if (resultEl) resultEl.style.display = 'none';
-                if (loginQrcodeScanner) loginQrcodeScanner.resume();
-            }, 3000);
-        }
-    } catch {
-        if (resultEl) {
-            resultEl.style.display = 'block';
-            resultEl.innerHTML = `<div class="scan-error"><div class="fw-semibold text-danger">Connection error. Please try again.</div></div>`;
-        }
-        setTimeout(() => {
-            if (resultEl) resultEl.style.display = 'none';
-            if (loginQrcodeScanner) loginQrcodeScanner.resume();
-        }, 3000);
-    }
-};
+function initScannerButton() {
+    const btn = document.getElementById('btn-open-scanner-tab');
+    if (btn) btn.addEventListener('click', openScannerPage);
+}
 
 // --- Admin ---
 
@@ -3445,8 +3545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Employee Actions
         if (target.closest('#btn-checkin')) { doCheckIn(); return; }
         if (target.closest('#btn-checkout')) { doCheckOut(); return; }
-        if (target.closest('#btn-open-scanner')) { startScanner(); return; }
-        if (target.closest('#btn-close-scanner')) { stopScanner(); return; }
+
         if (target.closest('.js-employee-add-leave')) { openEmployeeLeaveModal(); return; }
 
         const editLeaveBtn = target.closest('.js-edit-leave');
@@ -3773,8 +3872,6 @@ document.addEventListener('DOMContentLoaded', () => {
             scanPanel.classList.add('active');
             if (btnScanner) btnScanner.classList.add('active');
             if (btnForm)    btnForm.classList.remove('active');
-            // Start scanner if not already running
-            if (!loginQrcodeScanner) startLoginScanner();
         }
     });
 });
@@ -3825,7 +3922,6 @@ function initLoginTabs() {
       } else {
         formPanel.classList.remove('hidden');
         scanPanel.classList.remove('active');
-        if (typeof stopLoginScanner === 'function') stopLoginScanner();
       }
     });
   });
