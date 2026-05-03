@@ -5,18 +5,8 @@
                 <span data-i18n="employeeDashboard.dashboard">Dashboard</span>
             </h1>
             <div class="navbar-nav flex-row order-md-last">
-                <div class="nav-item dropdown">
-                    <a class="nav-link" href="#" id="employeeLanguageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 3a9 9 0 0 0 0 18" /><path d="M12 3a9 9 0 0 1 0 18" /></svg>
-                        <span id="current-language-text">EN</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="employeeLanguageDropdown">
-                        <li><a class="dropdown-item" href="#" data-lang="en" data-i18n="languages.english">English</a></li>
-                        <li><a class="dropdown-item" href="#" data-lang="id" data-i18n="languages.bahasaIndonesia">Bahasa Indonesia</a></li>
-                    </ul>
-                </div>
                 <div class="nav-item">
-                    <button class="btn btn-outline-secondary btn-sm me-2 js-employee-profile-btn" title="My Profile">
+                    <button class="btn btn-outline-secondary me-2 js-employee-profile-btn" title="My Profile">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
                         <span data-i18n="profile.myProfile">My Profile</span>
                     </button>
@@ -42,6 +32,9 @@
 
                 <!-- Employee Dashboard Panel -->
                 <div id="employee-dashboard-panel">
+                    <!-- Location Alerts -->
+                    <div id="location-alerts-container" class="mb-3"></div>
+
                     <div class="row row-cards">
                         <div class="col-md-6">
                             <div class="card premium-card">
@@ -58,6 +51,7 @@
                                             <!-- Populated by JS -->
                                         </div>
                                         <div id="location-distance-display" class="text-muted small mt-1" aria-live="polite"></div>
+                                        <div id="employee-location-map" style="height: 300px; border-radius: 12px; margin-top: 1rem; border: 1px solid rgba(0,0,0,0.1); display: none;"></div>
                                     </div>
 
                                     <div class="d-flex justify-content-center gap-3 mb-4">
@@ -72,11 +66,6 @@
                                             <span id="checkout-btn-text" data-i18n="employeeDashboard.checkOut">Check Out</span>
                                         </button>
                                     </div>
-                                    <hr>
-                                    <p class="text-muted mb-2" data-i18n="employeeDashboard.orScanQr">Or scan QR Code</p>
-                                    <button id="btn-open-scanner" class="btn btn-outline-primary" data-i18n="employeeDashboard.openScanner">Open Scanner</button>
-                                    <button id="btn-close-scanner" class="btn btn-outline-danger" style="display: none;" data-i18n="employeeDashboard.closeScanner">Close Scanner</button>
-                                    <div id="reader" class="mt-3" style="display: none;"></div>
                                 </div>
                             </div>
                         </div>

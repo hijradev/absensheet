@@ -49,12 +49,12 @@ export function t(key) {
         }
     }
     
-    // If found as nested and it's a string, return it
-    if (found && typeof value === 'string') return value;
+    // If found as nested, return it (could be string or array)
+    if (found) return value;
 
     // Fallback 1: If nested failed, try the last part of the key as a flat key in current language
     const lastPart = keys[keys.length - 1];
-    if (Object.prototype.hasOwnProperty.call(lang, lastPart) && typeof lang[lastPart] === 'string') {
+    if (Object.prototype.hasOwnProperty.call(lang, lastPart)) {
         return lang[lastPart];
     }
 
@@ -71,10 +71,10 @@ export function t(key) {
                 break;
             }
         }
-        if (defFound && typeof defValue === 'string') return defValue;
+        if (defFound) return defValue;
         
         // Final fallback: last part in default language
-        if (Object.prototype.hasOwnProperty.call(defaultLang, lastPart) && typeof defaultLang[lastPart] === 'string') {
+        if (Object.prototype.hasOwnProperty.call(defaultLang, lastPart)) {
             return defaultLang[lastPart];
         }
     }

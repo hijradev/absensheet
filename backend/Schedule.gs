@@ -103,7 +103,24 @@ function getMonthlySchedules(token, filters) {
     }));
 
     // Attach shift times if available
-    const shifts = (getCachedAdminData ? getCachedAdminData(props.MASTER_DB_ID) : null);
+    // Use cached data for shifts if available, otherwise fallback to sheet read
+    let shifts = [];
+    if (typeof getCachedShifts === 'function') {
+        shifts = getCachedShifts(props.MASTER_DB_ID);
+    } else if (typeof getCachedAdminData === 'function') {
+        shifts = getCachedAdminData(props.MASTER_DB_ID);
+    } else {
+        const shiftData = getSheetData(props.MASTER_DB_ID, "Shifts");
+        for (let i = 1; i < shiftData.length; i++) {
+            if (shiftData[i][0]) {
+                shifts.push({
+                    id: String(shiftData[i][0]),
+                    start_time: String(shiftData[i][1] || ""),
+                    end_time: String(shiftData[i][2] || "")
+                });
+            }
+        }
+    }
     // Fallback: read shifts directly
     try {
       const shiftData = getSheetData(props.MASTER_DB_ID, "Shifts");
@@ -318,6 +335,9 @@ function getMonthScheduleSummary(token, year, month) {
 
     const schedules = getCachedSchedules(props.MASTER_DB_ID);
     const employees = getCachedEmployees(props.MASTER_DB_ID);
+    const shifts    = (typeof getCachedShifts === 'function') ? getCachedShifts(props.MASTER_DB_ID) : [];
+    const positions = (typeof getCachedPositions === 'function') ? getCachedPositions(props.MASTER_DB_ID) : [];
+
     const empMap = {};
     employees.forEach(e => { empMap[e.id] = e; });
 
@@ -326,6 +346,9 @@ function getMonthScheduleSummary(token, year, month) {
     if (user.role !== "Admin") {
       result = result.filter(s => s.employeeId === user.userId);
     }
+
+    // Sort by day
+    result.sort((a, b) => a.day - b.day);
 
     // Enrich
     result = result.map(s => ({
@@ -338,37 +361,23 @@ function getMonthScheduleSummary(token, year, month) {
       ? employees.map(e => ({ id: e.id, name: e.name, shift_id: e.shift_id || "", jabatan_id: e.jabatan_id || "" }))
       : [{ id: user.userId, name: (empMap[user.userId] || {}).name || user.userId }];
 
-    // Read shifts
-    let shiftMap = {};
-    try {
-      const shiftData = getSheetData(props.MASTER_DB_ID, "Shifts");
-      for (let i = 1; i < shiftData.length; i++) {
-        if (shiftData[i][0]) {
-          shiftMap[String(shiftData[i][0])] = {
-            id: String(shiftData[i][0]),
-            start_time: String(shiftData[i][1] || ""),
-            end_time:   String(shiftData[i][2] || "")
-          };
-        }
-      }
-    } catch (e) { /* ignore */ }
+    // Prepare shift and group maps for the frontend
+    const shiftList = shifts.map(s => ({
+        id: s.id,
+        start_time: s.start_time,
+        end_time: s.end_time
+    }));
 
-    // Read groups/positions
-    let groupMap = {};
-    try {
-      const posData = getSheetData(props.MASTER_DB_ID, "Positions");
-      for (let i = 1; i < posData.length; i++) {
-        if (posData[i][0]) {
-          groupMap[String(posData[i][0])] = String(posData[i][1] || posData[i][0]);
-        }
-      }
-    } catch (e) { /* ignore */ }
+    const groupList = positions.map(p => ({
+        id: p.id,
+        name: p.name
+    }));
 
     return successResponse({
       schedules: result,
       employees: empList,
-      shifts: Object.values(shiftMap),
-      groups: Object.entries(groupMap).map(([id, name]) => ({ id, name })),
+      shifts: shiftList,
+      groups: groupList,
       year: Number(year),
       month: Number(month)
     });

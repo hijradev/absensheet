@@ -284,6 +284,37 @@ function saveGeofenceSettings(token, data) {
   }
 }
 
+/**
+ * Get geofence settings without authentication (public endpoint).
+ * Used by the standalone QR scanner page which has no auth token.
+ * Only returns the enabled flag and work location coordinates — no sensitive data.
+ *
+ * @returns {{ status: string, data: { enabled: boolean, latitude?: number, longitude?: number, radius?: number } }}
+ */
+function getGeofenceSettingsPublic() {
+  try {
+    var scriptProps = PropertiesService.getScriptProperties();
+    var enabled = scriptProps.getProperty('GEOFENCE_ENABLED') === 'true';
+
+    if (!enabled) {
+      return successResponse({ enabled: false });
+    }
+
+    var lat = parseFloat(scriptProps.getProperty('WORK_LAT'));
+    var lng = parseFloat(scriptProps.getProperty('WORK_LNG'));
+    var radius = parseFloat(scriptProps.getProperty('GEOFENCE_RADIUS'));
+
+    return successResponse({
+      enabled: true,
+      latitude: isNaN(lat) ? null : lat,
+      longitude: isNaN(lng) ? null : lng,
+      radius: isNaN(radius) ? null : radius
+    });
+  } catch (e) {
+    return successResponse({ enabled: false });
+  }
+}
+
 // ============================================================================
 // Monthly Report Email Configuration Functions
 // ============================================================================
