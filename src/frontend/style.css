@@ -296,6 +296,7 @@ body {
 
 .admin-content {
     flex: 1;
+    min-width: 0;
     padding: 1.5rem;
 }
 
@@ -864,4 +865,32 @@ td .btn + .btn {
     flex-wrap: nowrap;
     overflow: hidden;
   }
+}
+
+/* ---- Monthly Schedule Table ---- */
+.sched-table .sticky-col {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.06);
+}
+.sched-table thead .sticky-col {
+    z-index: 3;
+    background: #f8fafc;
+}
+.sched-table td.border-primary {
+    outline: 2px solid #206bc4;
+    outline-offset: -2px;
+}
+
+/* ---- Employee Schedule Calendar ---- */
+.sched-calendar .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+.sched-calendar .col {
+    padding: 2px;
+    flex: 0 0 calc(100% / 7);
+    max-width: calc(100% / 7);
 }

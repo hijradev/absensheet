@@ -2,10 +2,11 @@
 import { t } from '../i18n/i18n.js';
 
 export class LeaveManagement {
-    constructor(state, setState, callGas) {
+    constructor(state, setState, callGas, callbacks = {}) {
         this.state = state;
         this.setState = setState;
         this.callGas = callGas;
+        this.callbacks = callbacks;
         
         // Pagination and filter state
         this.currentPage = 1;
@@ -131,7 +132,7 @@ export class LeaveManagement {
     async submitLeaveRequest() {
         // Fallback for non-admins if employeeId is missing
         if (!this.formData.employeeId && this.state.user?.role !== 'Admin') {
-            this.formData.employeeId = this.state.user?.userId || '';
+            this.formData.employeeId = this.state.user?.id || '';
         }
 
         if (!this.formData.employeeId || !this.formData.startDate || !this.formData.endDate) {
@@ -164,7 +165,11 @@ export class LeaveManagement {
                 this.editingLeave = null;
                 
                 // Reload data
-                await this.loadData();
+                if (this.callbacks.onSuccess) {
+                    this.callbacks.onSuccess(res);
+                } else {
+                    await this.loadData();
+                }
                 this.setState({ 
                     successMessage: res.message || 'Leave request submitted successfully.',
                     formSubmitting: false
@@ -186,58 +191,90 @@ export class LeaveManagement {
         }
     }
 
-    async updateLeaveStatus(leaveId, status, notes = '') {
-        if (!confirm(`Are you sure you want to ${status} this leave request?`)) return;
-        
-        this.setState({ managementLoading: true });
-        try {
-            const res = await this.callGas('updateLeaveStatus', this.state.token, leaveId, status, notes);
-            if (res && res.status === 'success') {
-                // Reload data
-                await this.loadData();
-                this.setState({ 
-                    successMessage: res.message || `Leave request ${status} successfully.`,
-                    managementLoading: false
-                });
-            } else {
-                this.setState({ 
-                    managementLoading: false, 
-                    errorMessage: res?.message || `Failed to ${status} leave request.` 
-                });
+    updateLeaveStatus(leaveId, status, notes = '') {
+        const confirmMsg = status === 'approved' ? 
+            (this.t('leaveManagement.confirmApprove') || `Are you sure you want to approve this leave request?`) : 
+            (this.t('leaveManagement.confirmReject') || `Are you sure you want to reject this leave request?`);
+            
+        const confirmText = status === 'approved' ? 
+            (this.t('leaveManagement.approve') || 'Approve') : 
+            (this.t('leaveManagement.reject') || 'Reject');
+            
+        const confirmColor = status === 'approved' ? 'btn-success' : 'btn-danger';
+            
+        this.setState({
+            confirmDialog: {
+                visible: true,
+                message: confirmMsg,
+                confirmText: confirmText,
+                confirmColor: confirmColor,
+                onConfirm: async () => {
+                    this.setState({ managementLoading: true });
+                    try {
+                        const res = await this.callGas('updateLeaveStatus', this.state.token, leaveId, status, notes);
+                        if (res && res.status === 'success') {
+                            // Reload data
+                            if (this.callbacks.onSuccess) {
+                                this.callbacks.onSuccess(res);
+                            } else {
+                                await this.loadData();
+                            }
+                            this.setState({ 
+                                successMessage: res.message || `Leave request ${status} successfully.`,
+                                managementLoading: false
+                            });
+                        } else {
+                            this.setState({ 
+                                managementLoading: false, 
+                                errorMessage: res?.message || `Failed to ${status} leave request.` 
+                            });
+                        }
+                    } catch {
+                        this.setState({ 
+                            managementLoading: false, 
+                            errorMessage: 'Connection error while updating leave status.' 
+                        });
+                    }
+                }
             }
-        } catch {
-            this.setState({ 
-                managementLoading: false, 
-                errorMessage: 'Connection error while updating leave status.' 
-            });
-        }
+        });
     }
 
-    async deleteLeaveRequest(leaveId) {
-        if (!confirm('Are you sure you want to delete this leave request?')) return;
-        
-        this.setState({ managementLoading: true });
-        try {
-            const res = await this.callGas('deleteLeaveRequest', this.state.token, leaveId);
-            if (res && res.status === 'success') {
-                // Reload data
-                await this.loadData();
-                this.setState({ 
-                    successMessage: res.message || 'Leave request deleted successfully.',
-                    managementLoading: false
-                });
-            } else {
-                this.setState({ 
-                    managementLoading: false, 
-                    errorMessage: res?.message || 'Failed to delete leave request.' 
-                });
+    deleteLeaveRequest(leaveId) {
+        this.setState({
+            confirmDialog: {
+                visible: true,
+                message: this.t('common.areYouSure') || 'Are you sure you want to delete this leave request?',
+                onConfirm: async () => {
+                    this.setState({ managementLoading: true });
+                    try {
+                        const res = await this.callGas('deleteLeaveRequest', this.state.token, leaveId);
+                        if (res && res.status === 'success') {
+                            // Reload data
+                            if (this.callbacks.onSuccess) {
+                                this.callbacks.onSuccess(res);
+                            } else {
+                                await this.loadData();
+                            }
+                            this.setState({ 
+                                successMessage: res.message || 'Leave request deleted successfully.',
+                                managementLoading: false
+                            });
+                        } else {
+                            this.setState({ 
+                                managementLoading: false, 
+                                errorMessage: res?.message || 'Failed to delete leave request.' 
+                            });
+                        }
+                    } catch {
+                        this.setState({ 
+                            managementLoading: false, 
+                            errorMessage: 'Connection error while deleting leave request.' 
+                        });
+                    }
+                }
             }
-        } catch {
-            this.setState({ 
-                managementLoading: false, 
-                errorMessage: 'Connection error while deleting leave request.' 
-            });
-        }
+        });
     }
 
     editLeave(leave) {
@@ -327,13 +364,97 @@ export class LeaveManagement {
     prepareNewLeave() {
         this.editingLeave = null;
         this.formData = {
-            employeeId: this.state.user?.role === 'Admin' ? '' : (this.state.user?.userId || ''),
+            employeeId: this.state.user?.role === 'Admin' ? '' : (this.state.user?.id || ''),
             leaveType: 'Cuti',
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date().toISOString().split('T')[0],
             reason: ''
         };
         this.updateModalForm();
+    }
+
+    renderModal(container) {
+        if (!container) return;
+        
+        let modalEl = document.getElementById('leave-form-modal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = 'leave-form-modal';
+            modalEl.className = 'modal fade';
+            modalEl.setAttribute('tabindex', '-1');
+            modalEl.setAttribute('aria-hidden', 'true');
+            container.appendChild(modalEl);
+        }
+        
+        const isAdmin = this.state.user?.role === 'Admin';
+        const employees = this.state.employees;
+        
+        modalEl.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            ${this.editingLeave ? this.t('leaveManagement.editLeaveRequest') : this.t('leaveManagement.newLeaveRequest')}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="leave-form">
+                            <div class="mb-3">
+                                <label class="form-label">${this.t('leaveManagement.employee')} *</label>
+                                ${isAdmin ? `
+                                    <select class="form-select js-employee-select" required>
+                                        <option value="">${this.t('common.selectEmployee')}</option>
+                                        ${employees ? employees.map(emp => `
+                                            <option value="${emp.id}" ${this.formData.employeeId === emp.id ? 'selected' : ''}>
+                                                ${this.escHtml(emp.name)} (${this.escHtml(emp.id)})
+                                            </option>
+                                        `).join('') : ''}
+                                    </select>
+                                ` : `
+                                    <input type="text" class="form-control" value="${this.escHtml(this.state.user?.id || '')} - ${this.escHtml(this.state.user?.name || '')}" disabled>
+                                    <input type="hidden" class="js-employee-id" value="${this.state.user?.id || ''}">
+                                `}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">${this.t('leaveManagement.leaveType')} *</label>
+                                <select class="form-select js-leave-type" required>
+                                    <option value="Cuti" ${this.formData.leaveType === 'Cuti' ? 'selected' : ''}>${this.t('leaveManagement.cuti')}</option>
+                                    <option value="Izin" ${this.formData.leaveType === 'Izin' ? 'selected' : ''}>${this.t('leaveManagement.izin')}</option>
+                                    <option value="Sakit" ${this.formData.leaveType === 'Sakit' ? 'selected' : ''}>${this.t('leaveManagement.sakit')}</option>
+                                    <option value="Libur" ${this.formData.leaveType === 'Libur' ? 'selected' : ''}>${this.t('leaveManagement.libur')}</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">${this.t('leaveManagement.startDate')} *</label>
+                                    <input type="date" class="form-control js-start-date" value="${this.formData.startDate}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">${this.t('leaveManagement.endDate')} *</label>
+                                    <input type="date" class="form-control js-end-date" value="${this.formData.endDate}" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">${this.t('leaveManagement.reason')}</label>
+                                <textarea class="form-control js-reason" rows="3" placeholder="${this.t('leaveManagement.reasonPlaceholder')}">${this.escHtml(this.formData.reason)}</textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${this.t('common.cancel')}</button>
+                        ${this.editingLeave ? `
+                            <button type="button" class="btn btn-secondary js-cancel-edit">${this.t('common.cancelEdit')}</button>
+                        ` : ''}
+                        <button type="button" class="btn btn-primary js-submit-leave">
+                            ${this.editingLeave ? this.t('common.update') : this.t('common.submit')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        this.addModalEventListeners();
     }
 
     render() {
@@ -358,17 +479,17 @@ export class LeaveManagement {
 
         // Status badge colors
         const statusColors = {
-            pending: 'bg-warning-lt text-warning',
-            approved: 'bg-success-lt text-success',
-            rejected: 'bg-danger-lt text-danger'
+            pending: 'bg-warning text-white',
+            approved: 'bg-success text-white',
+            rejected: 'bg-danger text-white'
         };
 
         // Leave type colors
         const leaveTypeColors = {
-            Cuti: 'bg-info-lt text-info',
-            Izin: 'bg-primary-lt text-primary',
-            Sakit: 'bg-warning-lt text-warning',
-            Libur: 'bg-secondary-lt text-secondary'
+            Cuti: 'bg-info text-white',
+            Izin: 'bg-primary text-white',
+            Sakit: 'bg-warning text-white',
+            Libur: 'bg-secondary text-white'
         };
 
         // Generate main content without modal
@@ -516,87 +637,71 @@ export class LeaveManagement {
                                                             <div class="text-muted small">${this.escHtml(this.formatDate(leave.createdAt))}</div>
                                                         </td>
                                                         <td class="text-end">
-                                                            ${(() => {
-                                                                // Check what actions should be shown
-                                                                const showApproveReject = isAdmin && leave.status === 'pending';
-                                                                const showDelete = isAdmin;
-                                                                const showEdit = leave.status === 'pending';
-                                                                
-                                                                // Count actions
-                                                                const actionCount = (showApproveReject ? 2 : 0) + (showDelete ? 1 : 0) + (showEdit ? 1 : 0);
-                                                                
-                                                                // If no actions, show nothing
-                                                                if (actionCount === 0) return '';
-                                                                
-                                                                // If only one action, show button directly
-                                                                if (actionCount === 1) {
+                                                            <div class="d-flex gap-1 justify-content-end">
+                                                                ${(() => {
+                                                                    const showApproveReject = isAdmin && leave.status === 'pending';
+                                                                    const showDelete = isAdmin;
+                                                                    const showEdit = leave.status === 'pending';
+                                                                    
+                                                                    let buttons = '';
+                                                                    
+                                                                    // Approve button (admin only for pending leaves)
+                                                                    if (showApproveReject) {
+                                                                        buttons += `
+                                                                            <button class="btn btn-sm btn-success js-approve-leave" data-id="${leave.id}" title="${this.t('leaveManagement.approve')}">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                                                    <path d="M5 12l5 5l10 -10" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        `;
+                                                                    }
+                                                                    
+                                                                    // Reject button (admin only for pending leaves)
+                                                                    if (showApproveReject) {
+                                                                        buttons += `
+                                                                            <button class="btn btn-sm btn-danger js-reject-leave" data-id="${leave.id}" title="${this.t('leaveManagement.reject')}">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                                                    <path d="M18 6l-12 12" />
+                                                                                    <path d="M6 6l12 12" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        `;
+                                                                    }
+                                                                    
+                                                                    // Edit button (for pending leaves)
                                                                     if (showEdit) {
-                                                                        return `<button class="btn btn-sm btn-primary js-edit-leave" data-id="${leave.id}">${this.t('common.edit')}</button>`;
+                                                                        buttons += `
+                                                                            <button class="btn btn-sm btn-primary js-edit-leave" data-id="${leave.id}" title="${this.t('common.edit')}">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                                                    <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+                                                                                    <path d="M13.5 6.5l4 4" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        `;
                                                                     }
+                                                                    
+                                                                    // Delete button (admin only)
                                                                     if (showDelete) {
-                                                                        return `<button class="btn btn-sm btn-outline-danger js-delete-leave" data-id="${leave.id}">${this.t('common.delete')}</button>`;
+                                                                        buttons += `
+                                                                            <button class="btn btn-sm btn-outline-danger js-delete-leave" data-id="${leave.id}" title="${this.t('common.delete')}">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                                                    <path d="M4 7l16 0" />
+                                                                                    <path d="M10 11l0 6" />
+                                                                                    <path d="M14 11l0 6" />
+                                                                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                                                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        `;
                                                                     }
-                                                                    // Shouldn't reach here
-                                                                    return '';
-                                                                }
-                                                                
-                                                                // Multiple actions, show dropdown
-                                                                return `
-                                                                    <div class="dropdown">
-                                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                                <path d="M4 6l16 0" />
-                                                                                <path d="M4 12l16 0" />
-                                                                                <path d="M4 18l16 0" />
-                                                                            </svg>
-                                                                        </button>
-                                                                        <div class="dropdown-menu dropdown-menu-end">
-                                                                            ${showApproveReject ? `
-                                                                                <button class="dropdown-item js-approve-leave" type="button" data-id="${leave.id}">
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2" aria-hidden="true">
-                                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                                        <path d="M5 12l5 5l10 -10" />
-                                                                                    </svg>
-                                                                                    ${this.t('leaveManagement.approve')}
-                                                                                </button>
-                                                                                <button class="dropdown-item js-reject-leave" type="button" data-id="${leave.id}">
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2" aria-hidden="true">
-                                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                                        <path d="M18 6l-12 12" />
-                                                                                        <path d="M6 6l12 12" />
-                                                                                    </svg>
-                                                                                    ${this.t('leaveManagement.reject')}
-                                                                                </button>
-                                                                                <div class="dropdown-divider"></div>
-                                                                            ` : ''}
-                                                                            ${showEdit ? `
-                                                                                <button class="dropdown-item js-edit-leave" type="button" data-id="${leave.id}">
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2" aria-hidden="true">
-                                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                                        <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
-                                                                                        <path d="M13.5 6.5l4 4" />
-                                                                                    </svg>
-                                                                                    ${this.t('common.edit')}
-                                                                                </button>
-                                                                            ` : ''}
-                                                                            ${showDelete ? `
-                                                                                <button class="dropdown-item text-danger js-delete-leave" type="button" data-id="${leave.id}">
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2" aria-hidden="true">
-                                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                                        <path d="M4 7l16 0" />
-                                                                                        <path d="M10 11l0 6" />
-                                                                                        <path d="M14 11l0 6" />
-                                                                                        <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                                                                                        <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-                                                                                    </svg>
-                                                                                    ${this.t('common.delete')}
-                                                                                </button>
-                                                                            ` : ''}
-                                                                        </div>
-                                                                    </div>
-                                                                `;
-                                                            })()}
+                                                                    
+                                                                    return buttons || '<span class="text-muted small">-</span>';
+                                                                })()}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 `;
@@ -704,8 +809,8 @@ export class LeaveManagement {
                                             `).join('') : ''}
                                         </select>
                                     ` : `
-                                        <input type="text" class="form-control" value="${this.escHtml(this.state.user?.userId || '')} - ${this.escHtml(this.state.user?.name || '')}" disabled>
-                                        <input type="hidden" class="js-employee-id" value="${this.state.user?.userId || ''}">
+                                        <input type="text" class="form-control" value="${this.escHtml(this.state.user?.id || '')} - ${this.escHtml(this.state.user?.name || '')}" disabled>
+                                        <input type="hidden" class="js-employee-id" value="${this.state.user?.id || ''}">
                                     `}
                                 </div>
                                 <div class="mb-3">
@@ -873,7 +978,7 @@ export class LeaveManagement {
         const approveBtns = document.querySelectorAll('.js-approve-leave');
         approveBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const leaveId = e.target.dataset.id;
+                const leaveId = e.target.closest('.js-approve-leave').dataset.id;
                 this.updateLeaveStatus(leaveId, 'approved');
             });
         });
@@ -881,7 +986,7 @@ export class LeaveManagement {
         const rejectBtns = document.querySelectorAll('.js-reject-leave');
         rejectBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const leaveId = e.target.dataset.id;
+                const leaveId = e.target.closest('.js-reject-leave').dataset.id;
                 this.updateLeaveStatus(leaveId, 'rejected');
             });
         });
@@ -889,7 +994,7 @@ export class LeaveManagement {
         const deleteBtns = document.querySelectorAll('.js-delete-leave');
         deleteBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const leaveId = e.target.dataset.id;
+                const leaveId = e.target.closest('.js-delete-leave').dataset.id;
                 this.deleteLeaveRequest(leaveId);
             });
         });

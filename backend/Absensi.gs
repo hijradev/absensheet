@@ -237,6 +237,19 @@ function getDailyAttendance(token, dateStr) {
         // Check if employee is on leave
         const leaveCheck = isEmployeeOnLeave(emp.id, targetDate);
         
+        let inStatus = "Tidak Hadir";
+        let inSource = null;
+        if (leaveCheck.onLeave) {
+          inStatus = leaveCheck.leaveType;
+          inSource = "leave";
+        } else {
+          const sched = getEmployeeScheduleForDate(emp.id, targetDate);
+          if (sched && (sched.scheduleType === "off" || sched.scheduleType === "holiday")) {
+            inStatus = "Libur";
+            inSource = "schedule";
+          }
+        }
+        
         records.push({
           employeeId:       emp.id,
           employeeName:     emp.name || "-",
@@ -245,7 +258,7 @@ function getDailyAttendance(token, dateStr) {
           shiftStart:       shift.start_time || "-",
           shiftEnd:         shift.end_time || "-",
           checkInTime:      "",
-          checkInStatus:    leaveCheck.onLeave ? leaveCheck.leaveType : "Tidak Hadir",
+          checkInStatus:    inStatus,
           checkOutTime:     "",
           checkOutStatus:   "",
           checkInLat:       null,
@@ -254,7 +267,7 @@ function getDailyAttendance(token, dateStr) {
           checkOutLat:      null,
           checkOutLng:      null,
           checkOutDistance: null,
-          source:           leaveCheck.onLeave ? "leave" : null
+          source:           inSource
         });
       }
     });
@@ -402,6 +415,19 @@ function getDailyAttendanceRange(token, startDate, endDate) {
           // Check if employee is on leave
           const leaveCheck = isEmployeeOnLeave(emp.id, d);
           
+          let inStatus = "Tidak Hadir";
+          let inSource = null;
+          if (leaveCheck.onLeave) {
+            inStatus = leaveCheck.leaveType;
+            inSource = "leave";
+          } else {
+            const sched = getEmployeeScheduleForDate(emp.id, d);
+            if (sched && (sched.scheduleType === "off" || sched.scheduleType === "holiday")) {
+              inStatus = "Libur";
+              inSource = "schedule";
+            }
+          }
+          
           records.push({
             date:             d,
             employeeId:       emp.id,
@@ -411,7 +437,7 @@ function getDailyAttendanceRange(token, startDate, endDate) {
             shiftStart:       shift.start_time || "-",
             shiftEnd:         shift.end_time || "-",
             checkInTime:      "",
-            checkInStatus:    leaveCheck.onLeave ? leaveCheck.leaveType : "Tidak Hadir",
+            checkInStatus:    inStatus,
             checkOutTime:     "",
             checkOutStatus:   "",
             checkInLat:       null,
@@ -420,7 +446,7 @@ function getDailyAttendanceRange(token, startDate, endDate) {
             checkOutLat:      null,
             checkOutLng:      null,
             checkOutDistance: null,
-            source:           leaveCheck.onLeave ? "leave" : null
+            source:           inSource
           });
         }
       });

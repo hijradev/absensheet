@@ -8,7 +8,7 @@ import { initLanguage, t, getLanguage, onLanguageChange, setLanguage } from './i
 // Make bootstrap available globally for components
 // We ensure it has the Modal class even if the module structure is nested
 if (typeof window !== 'undefined') {
-    window.bootstrap = bootstrap.default || bootstrap;
+    window.bootstrap = bootstrap;
 }
 
 // Initialize language
@@ -27,6 +27,12 @@ function escHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#x27;');
+}
+
+function formatTimeStr(str) {
+    if (!str) return '';
+    const m = String(str).match(/\d{2}:\d{2}/);
+    return m ? m[0] : str;
 }
 
 // --- State ---
@@ -134,6 +140,15 @@ const state = {
     leaveSearch: '',
     leaveFilterStatus: 'Pending',
     currentLeaveComponent: null,
+    
+    // Employee Leave Management
+    employeeLeaveRequests: [],
+    employeeLeavesLoaded: false,
+    employeeLeavesLoading: false,
+
+    // Schedule Management
+    currentScheduleComponent: null,
+    currentMyScheduleComponent: null,
 };
 
 // Batch-update state and render once.
@@ -218,6 +233,14 @@ const callGas = (functionName, ...args) => {
                     resolve({ status: 'success', message: 'Password changed successfully' });
                 } else if (functionName === 'uploadMyAvatar') {
                     resolve({ status: 'success', data: { photo_url: '' }, message: 'Avatar updated' });
+                } else if (functionName === 'getMonthScheduleSummary') {
+                    resolve({ status: 'success', data: { schedules: [], employees: [], shifts: [], groups: [], year: args[1] || new Date().getFullYear(), month: args[2] || (new Date().getMonth() + 1) } });
+                } else if (functionName === 'saveBulkSchedule') {
+                    resolve({ status: 'success', data: { saved: (args[1] || []).length, message: 'Schedule saved.' } });
+                } else if (functionName === 'saveScheduleEntry') {
+                    resolve({ status: 'success', data: { id: 'SCH_MOCK', message: 'Schedule entry saved.' } });
+                } else if (functionName === 'deleteScheduleEntry') {
+                    resolve({ status: 'success', message: 'Schedule entry deleted.' });
                 } else {
                     resolve({ status: 'success', data: null });
                 }
@@ -363,7 +386,10 @@ function renderConfirmDialog() {
     if (okBtn) {
         okBtn.disabled = state.deleteLoading;
         if (spinnerEl) spinnerEl.style.display = state.deleteLoading ? 'inline-block' : 'none';
-        okBtn.querySelector('.confirm-btn-text').textContent = state.deleteLoading ? 'Deleting...' : 'Delete';
+        
+        const defaultText = state.deleteLoading ? (t('common.deleting') || 'Deleting...') : (t('common.delete') || 'Delete');
+        okBtn.querySelector('.confirm-btn-text').textContent = state.confirmDialog.confirmText || defaultText;
+        okBtn.className = 'btn ' + (state.confirmDialog.confirmColor || 'btn-danger');
     }
     if (cancelBtn) cancelBtn.disabled = state.deleteLoading;
 }
@@ -399,6 +425,16 @@ function renderEmployeeView() {
     if (checkoutIcon) checkoutIcon.style.display = state.checkOutLoading ? 'none' : 'inline-block';
     if (checkinText) checkinText.textContent = state.checkInLoading ? t('common.processing') : t('employeeDashboard.checkIn');
     if (checkoutText) checkoutText.textContent = state.checkOutLoading ? t('common.processing') : t('employeeDashboard.checkOut');
+
+    // Load employee leave requests
+    if (!state.employeeLeavesLoading && !state.employeeLeavesLoaded) {
+        loadEmployeeLeaveRequests();
+    } else if (state.employeeLeavesLoaded) {
+        renderEmployeeLeaveRequests();
+    }
+
+    // Load employee schedule
+    loadEmployeeSchedule();
 
     // --- Location status badge and button visibility ---
     const locationContainer = document.getElementById('location-status-container');
@@ -478,7 +514,7 @@ function renderAdminView() {
     }
 
     // Sidebar active states + sub-view visibility
-    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile', 'leaves'].forEach(v => {
+    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile', 'leaves', 'schedule'].forEach(v => {
         const navEl = document.getElementById(`nav-${v}`);
         if (navEl) navEl.classList.toggle('active', state.adminView === v);
         const viewEl = document.getElementById(`admin-view-${v}`);
@@ -494,6 +530,7 @@ function renderAdminView() {
         'shifts':            'management-group',
         'positions':         'management-group',
         'leaves':            'management-group',
+        'schedule':          'management-group',
         'reports':           'reports-group',
         'logs':              'reports-group',
     };
@@ -567,6 +604,7 @@ function renderAdminView() {
     if (state.adminView === 'reports') renderReports();
     if (state.adminView === 'qrcodes') renderQrCodesView();
     if (state.adminView === 'leaves') renderLeavesView();
+    if (state.adminView === 'schedule') renderScheduleView();
 }
 
 let _attendancePieChart = null;
@@ -730,6 +768,21 @@ async function renderLeavesView() {
     }
 }
 
+async function renderScheduleView() {
+    if (state.currentScheduleComponent) {
+        state.currentScheduleComponent.render();
+        return;
+    }
+    try {
+        const { ScheduleManagement } = await import('./components/ScheduleManagement.js');
+        const component = new ScheduleManagement(state, setState, callGas);
+        state.currentScheduleComponent = component;
+        await component.loadData();
+    } catch (error) {
+        console.error('Failed to load ScheduleManagement component:', error);
+    }
+}
+
 async function renderReports() {
     try {
         const { Reports } = await import('./components/Reports.js');
@@ -771,6 +824,201 @@ async function loadEmployeeProfileView() {
         await component.loadData();
     } catch (error) {
         console.error('Failed to load Profile component:', error);
+    }
+}
+
+// --- Employee Schedule ---
+
+async function loadEmployeeSchedule() {
+    const container = document.getElementById('employee-schedule-container');
+    if (!container) return;
+
+    if (state.currentMyScheduleComponent) {
+        // Already initialized — just re-render if container is empty
+        if (!container.querySelector('.sched-calendar') && !container.querySelector('.spinner-border')) {
+            state.currentMyScheduleComponent.render();
+        }
+        return;
+    }
+
+    try {
+        const { MySchedule } = await import('./components/MySchedule.js');
+        const component = new MySchedule(state, setState, callGas);
+        state.currentMyScheduleComponent = component;
+        await component.loadData();
+    } catch (error) {
+        console.error('Failed to load MySchedule component:', error);
+    }
+}
+
+// --- Employee Leave Management ---
+
+async function loadEmployeeLeaveRequests() {
+    if (state.employeeLeavesLoading) return;
+    setState({ employeeLeavesLoading: true });
+    try {
+        const res = await callGas('getLeaveRequests', state.token);
+        if (res && res.status === 'success') {
+            setState({
+                employeeLeaveRequests: res.data,
+                employeeLeavesLoaded: true,
+                employeeLeavesLoading: false
+            });
+        } else {
+            setState({ 
+                employeeLeavesLoading: false, 
+                errorMessage: res?.message || 'Failed to load leave requests.' 
+            });
+        }
+    } catch {
+        setState({ 
+            employeeLeavesLoading: false, 
+            errorMessage: 'Connection error while loading leave requests.' 
+        });
+    }
+}
+
+function renderEmployeeLeaveRequests() {
+    const container = document.getElementById('employee-leave-requests-container');
+    if (!container) return;
+
+    if (state.employeeLeavesLoading && !state.employeeLeavesLoaded) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">${t('common.loading')}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const leaves = state.employeeLeaveRequests || [];
+    if (leaves.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <p>${t('employeeDashboard.noLeaveRequests')}</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Status badge colors
+    const statusColors = {
+        pending: 'bg-warning-lt text-warning',
+        approved: 'bg-success-lt text-success',
+        rejected: 'bg-danger-lt text-danger'
+    };
+
+    const rows = leaves.map(leave => {
+        const startDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const isPending = leave.status === 'pending';
+
+        return `
+            <tr>
+                <td>
+                    <div class="fw-semibold">${t(`leaveManagement.${leave.leaveType.toLowerCase()}`)}</div>
+                </td>
+                <td>
+                    <div class="text-muted small">${escHtml(formatDateDisplay(leave.startDate))} - ${escHtml(formatDateDisplay(leave.endDate))}</div>
+                </td>
+                <td><span class="badge bg-secondary-lt">${daysDiff} ${t('employeeDashboard.days')}</span></td>
+                <td><span class="badge ${statusColors[leave.status] || 'bg-secondary'}">${t(`employeeDashboard.${leave.status}`)}</span></td>
+                <td class="text-end">
+                    ${isPending ? `
+                        <button class="btn btn-icon btn-sm btn-ghost-primary js-edit-leave" data-id="${leave.id}" title="${t('common.edit')}">${iconEdit()}</button>
+                        <button class="btn btn-icon btn-sm btn-ghost-danger js-delete-leave" data-id="${leave.id}" title="${t('common.delete')}">${iconDelete()}</button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th>${t('employeeDashboard.leaveType')}</th>
+                        <th>${t('employeeDashboard.date')}</th>
+                        <th>${t('employeeDashboard.days')}</th>
+                        <th>${t('employeeDashboard.status')}</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Helper to format date for display in Indonesian format or YYYY-MM-DD
+function formatDateDisplay(dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+    } catch {
+        return dateString;
+    }
+}
+
+async function openEmployeeLeaveModal(leaveId = null) {
+    try {
+        const { LeaveManagement } = await import('./components/LeaveManagement.js');
+        
+        if (!state.currentLeaveComponent) {
+            state.currentLeaveComponent = new LeaveManagement(state, setState, callGas, {
+                onSuccess: (res) => {
+                    loadEmployeeLeaveRequests();
+                    setState({ successMessage: res.message });
+                }
+            });
+        }
+        
+        const component = state.currentLeaveComponent;
+        
+        // Ensure modal container exists
+        const dashboardPanel = document.getElementById('employee-dashboard-panel');
+        if (!dashboardPanel) return;
+        
+        component.renderModal(dashboardPanel);
+        
+        if (leaveId) {
+            const leave = state.employeeLeaveRequests.find(l => l.id === leaveId);
+            if (leave) {
+                component.editLeave(leave);
+            }
+        } else {
+            component.prepareNewLeave();
+        }
+        
+        const modalEl = document.getElementById('leave-form-modal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    } catch (error) {
+        console.error('Failed to open leave modal:', error);
+    }
+}
+
+async function deleteEmployeeLeaveRequest(leaveId) {
+    if (!confirm(t('confirmAction') + '? ' + t('areYouSure'))) return;
+    
+    try {
+        const res = await callGas('deleteLeaveRequest', state.token, leaveId);
+        if (res && res.status === 'success') {
+            loadEmployeeLeaveRequests();
+            setState({ successMessage: res.message });
+        } else {
+            setState({ errorMessage: res?.message || 'Failed to delete leave request.' });
+        }
+    } catch {
+        setState({ errorMessage: 'Connection error while deleting leave request.' });
     }
 }
 
@@ -1295,7 +1543,7 @@ function renderDailyAttendanceView() {
         const shifts = state.adminManagement.shifts || [];
         const currentShift = state.attFilterShift;
         shiftSel.innerHTML = `<option value="">All Shifts</option>` +
-            shifts.map(s => `<option value="${escHtml(s.id)}" ${currentShift === s.id ? 'selected' : ''}>${escHtml(s.id)}</option>`).join('');
+            shifts.map(s => `<option value="${escHtml(s.id)}" ${currentShift === s.id ? 'selected' : ''}>${escHtml(formatTimeStr(s.start_time))}–${escHtml(formatTimeStr(s.end_time))}</option>`).join('');
     }
 
     // Show/hide Date column based on whether this is a range result
@@ -1453,16 +1701,28 @@ function attStatusBadge(status) {
         'Tepat Waktu': 'bg-success text-white',
         'Terlambat':   'bg-warning text-white',
         'Pulang Awal': 'bg-danger text-white',
-        'Tidak Hadir': 'bg-secondary text-white'
+        'Tidak Hadir': 'bg-secondary text-white',
+        'Cuti':        'bg-info text-white',
+        'Izin':        'bg-primary text-white',
+        'Sakit':       'bg-warning text-white',
+        'Libur':       'bg-secondary text-white',
+        'Day Off':     'bg-danger text-white',
+        'Holiday':     'bg-warning text-white'
     };
     const labelMap = {
         'Tepat Waktu': 'On Time',
         'Terlambat':   'Late',
         'Pulang Awal': 'Left Early',
-        'Tidak Hadir': 'Not Present'
+        'Tidak Hadir': 'Not Present',
+        'Cuti':        'Cuti',
+        'Izin':        'Izin',
+        'Sakit':       'Sakit',
+        'Libur':       'Libur',
+        'Day Off':     'Day Off',
+        'Holiday':     'Holiday'
     };
     if (!status) return '<span class="text-muted">—</span>';
-    const cls   = map[status]   || 'bg-secondary';
+    const cls   = map[status]   || 'bg-secondary text-white';
     const label = labelMap[status] || escHtml(status);
     return `<span class="badge ${cls}">${label}</span>`;
 }
@@ -1614,7 +1874,10 @@ function manualAttStatusBadge(status) {
         'Tidak Hadir': 'bg-secondary text-white',
         'Izin':        'bg-azure text-white',
         'Sakit':       'bg-purple text-white',
-        'Cuti':        'bg-teal text-white'
+        'Cuti':        'bg-teal text-white',
+        'Libur':       'bg-secondary text-white',
+        'Day Off':     'bg-danger text-white',
+        'Holiday':     'bg-warning text-white'
     };
     const labelMap = {
         'Tepat Waktu': 'On Time',
@@ -1623,7 +1886,10 @@ function manualAttStatusBadge(status) {
         'Tidak Hadir': 'Not Present',
         'Izin':        'Permission',
         'Sakit':       'Sick Leave',
-        'Cuti':        'Annual Leave'
+        'Cuti':        'Annual Leave',
+        'Libur':       'Libur',
+        'Day Off':     'Day Off',
+        'Holiday':     'Holiday'
     };
     if (!status) return '<span class="text-muted">—</span>';
     const cls   = map[status]      || 'bg-secondary text-white';
@@ -1760,7 +2026,7 @@ function renderModal() {
 
         const shiftSel = document.getElementById('user-shift');
         if (shiftSel) shiftSel.innerHTML = state.adminManagement.shifts.map(s =>
-            `<option value="${s.id}" ${state.formData.shift_id === s.id ? 'selected' : ''}>${s.id}</option>`
+            `<option value="${escHtml(s.id)}" ${state.formData.shift_id === s.id ? 'selected' : ''}>${escHtml(formatTimeStr(s.start_time))}–${escHtml(formatTimeStr(s.end_time))}</option>`
         ).join('');
 
         const posSel = document.getElementById('user-position');
@@ -3181,6 +3447,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.closest('#btn-checkout')) { doCheckOut(); return; }
         if (target.closest('#btn-open-scanner')) { startScanner(); return; }
         if (target.closest('#btn-close-scanner')) { stopScanner(); return; }
+        if (target.closest('.js-employee-add-leave')) { openEmployeeLeaveModal(); return; }
+
+        const editLeaveBtn = target.closest('.js-edit-leave');
+        if (editLeaveBtn && state.view === 'employee') { openEmployeeLeaveModal(editLeaveBtn.dataset.id); return; }
+
+        const deleteLeaveBtn = target.closest('.js-delete-leave');
+        if (deleteLeaveBtn && state.view === 'employee') { deleteEmployeeLeaveRequest(deleteLeaveBtn.dataset.id); return; }
 
         // Employee Profile
         if (target.closest('.js-employee-profile-btn')) {
@@ -3397,12 +3670,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dialog Actions
         if (target.closest('#confirm-dialog-ok')) {
             const cb = state.confirmDialog.onConfirm;
-            setState({ confirmDialog: { visible: false, message: '', onConfirm: null } });
+            setState({ confirmDialog: { visible: false, message: '', confirmText: '', confirmColor: '', onConfirm: null } });
             if (cb) cb();
             return;
         }
         if (target.closest('#confirm-dialog-cancel')) {
-            setState({ confirmDialog: { visible: false, message: '', onConfirm: null } });
+            setState({ confirmDialog: { visible: false, message: '', confirmText: '', confirmColor: '', onConfirm: null } });
             return;
         }
 
