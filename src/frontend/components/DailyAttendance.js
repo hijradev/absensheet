@@ -139,10 +139,17 @@ export class DailyAttendance {
 
         table.innerHTML = pageSlice.map((r, idx) => {
             const rowNum = start + idx + 1;
-            const inStatusBadge = this.attStatusBadge(r.checkInStatus);
-            const outStatusBadge = r.checkOutTime ? this.attStatusBadge(r.checkOutStatus) : '<span class="text-muted">—</span>';
-            const locationBadge = this.locationBadge(r, geofenceRadius);
-            const rowClass = r.checkInStatus === 'Tidak Hadir' ? 'table-light text-muted' : '';
+            const isLeave = r.source === 'leave' || ['Cuti','Izin','Sakit','Libur'].includes(r.checkInStatus);
+            const inStatusBadge = isLeave
+                ? this.dayOffBadge(r.checkInStatus)
+                : this.attStatusBadge(r.checkInStatus);
+            const outStatusBadge = isLeave
+                ? this.dayOffBadge(r.checkInStatus)
+                : (r.checkOutTime ? this.attStatusBadge(r.checkOutStatus) : '<span class="text-muted">—</span>');
+            const locationBadge = isLeave
+                ? `<span class="badge bg-secondary-lt text-secondary">—</span>`
+                : this.locationBadge(r, geofenceRadius);
+            const rowClass = isLeave ? 'table-info' : (r.checkInStatus === 'Tidak Hadir' ? 'table-light text-muted' : '');
             return `<tr class="${rowClass}">
                 <td class="text-muted">${rowNum}</td>
                 <td>
@@ -154,9 +161,9 @@ export class DailyAttendance {
                     <span class="badge bg-secondary-lt">${this.escHtml(r.shiftId)}</span>
                     <div class="text-muted small">${this.escHtml(r.shiftStart)} – ${this.escHtml(r.shiftEnd)}</div>
                 </td>
-                <td>${r.checkInTime ? `<span class="fw-medium">${this.escHtml(r.checkInTime)}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td>${isLeave ? '<span class="text-muted">—</span>' : (r.checkInTime ? `<span class="fw-medium">${this.escHtml(r.checkInTime)}</span>` : '<span class="text-muted">—</span>')}</td>
                 <td>${inStatusBadge}</td>
-                <td>${r.checkOutTime ? `<span class="fw-medium">${this.escHtml(r.checkOutTime)}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td>${isLeave ? '<span class="text-muted">—</span>' : (r.checkOutTime ? `<span class="fw-medium">${this.escHtml(r.checkOutTime)}</span>` : '<span class="text-muted">—</span>')}</td>
                 <td>${outStatusBadge}</td>
                 <td>${locationBadge}</td>
             </tr>`;
@@ -215,18 +222,48 @@ export class DailyAttendance {
         </li>`;
     }
 
+    /**
+     * Render a badge for day-off / leave status in the In/Out Status columns.
+     * Distinguishes leave types with distinct colors and icons.
+     */
+    dayOffBadge(leaveType) {
+        const configs = {
+            'Cuti':   { cls: 'bg-info text-white',        icon: '🏖️', label: 'Cuti' },
+            'Izin':   { cls: 'bg-primary text-white',     icon: '📋', label: 'Izin' },
+            'Sakit':  { cls: 'bg-warning text-white',      icon: '🏥', label: 'Sakit' },
+            'Libur':  { cls: 'bg-secondary text-white',   icon: '🎉', label: 'Libur' },
+            'Day Off':{ cls: 'bg-danger text-white',  icon: '🔴', label: 'Day Off' },
+            'Holiday':{ cls: 'bg-warning text-white',icon: '🎌', label: 'Holiday' },
+        };
+        const cfg = configs[leaveType] || { cls: 'bg-secondary text-white', icon: '📅', label: this.escHtml(leaveType || 'Day Off') };
+        return `<span class="badge ${cfg.cls}" title="${cfg.label}">${cfg.icon} ${cfg.label}</span>`;
+    }
+
     attStatusBadge(status) {
         const map = {
             'Tepat Waktu': 'bg-success text-white',
             'Terlambat': 'bg-warning text-white',
             'Pulang Awal': 'bg-danger text-white',
-            'Tidak Hadir': 'bg-secondary text-white'
+            'Tidak Hadir': 'bg-secondary text-white',
+            // Day-off / leave types
+            'Cuti': 'bg-info text-white',
+            'Izin': 'bg-primary text-white',
+            'Sakit': 'bg-warning text-white',
+            'Libur': 'bg-secondary text-white',
+            'Day Off': 'bg-danger text-white',
+            'Holiday': 'bg-warning text-white',
         };
         const labelMap = {
             'Tepat Waktu': 'Tepat Waktu',
             'Terlambat': 'Terlambat',
             'Pulang Awal': 'Pulang Awal',
-            'Tidak Hadir': 'Tidak Hadir'
+            'Tidak Hadir': 'Tidak Hadir',
+            'Cuti': 'Cuti',
+            'Izin': 'Izin',
+            'Sakit': 'Sakit',
+            'Libur': 'Libur',
+            'Day Off': 'Day Off',
+            'Holiday': 'Holiday',
         };
         if (!status) return '<span class="text-muted">—</span>';
         const cls = map[status] || 'bg-secondary';
