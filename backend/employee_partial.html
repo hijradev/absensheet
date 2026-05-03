@@ -54,7 +54,15 @@
                                         <div id="employee-location-map" style="height: 300px; border-radius: 12px; margin-top: 1rem; border: 1px solid rgba(0,0,0,0.1); display: none;"></div>
                                     </div>
 
-                                    <div class="d-flex justify-content-center gap-3 mb-4">
+                                    <!-- Attendance Buttons Skeleton (shown while data is loading) -->
+                                    <div id="attendance-buttons-skeleton" class="placeholder-glow mb-4">
+                                        <div class="d-flex justify-content-center gap-3">
+                                            <div class="placeholder col-5 py-4 rounded-3" style="height: 48px;"></div>
+                                            <div class="placeholder col-5 py-4 rounded-3" style="height: 48px;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div id="attendance-buttons-container" class="d-flex justify-content-center gap-3 mb-4" style="display: none !important;">
                                         <button id="btn-checkin" class="btn btn-success btn-lg">
                                             <span id="checkin-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;"></span>
                                             <svg id="checkin-icon" xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-login" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M20 12h-13l3 -3m0 6l-3 -3" /></svg>

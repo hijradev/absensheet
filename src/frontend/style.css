@@ -843,6 +843,12 @@ td .btn + .btn {
     outline-offset: -2px;
 }
 
+/* Ensure map container has a stable height to avoid layout shift and Leaflet initialization issues */
+#employee-location-map {
+    min-height: 300px;
+    background-color: #f8fafc; /* placeholder background while loading */
+}
+
 /* ---- Employee Schedule Calendar ---- */
 .sched-calendar .row {
     margin-left: 0;

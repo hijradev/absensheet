@@ -127,6 +127,7 @@ const state = {
     geofenceWorkLat: null,
     geofenceWorkLng: null,
     locationPayload: null,       // { latitude, longitude, accuracy } — current GPS fix
+    locationAccuracyPoor: false, // true when GPS fix has accuracy > 200m (map shown, check-in blocked)
     locationStatus: 'disabled',  // 'disabled' | 'acquiring' | 'within' | 'outside' | 'error'
     locationErrorMessage: '',
     locationDistance: null,      // computed client-side distance in meters
@@ -262,6 +263,9 @@ const loadView = async (viewName) => {
         
         const contentDiv = document.getElementById('app-content');
         if (contentDiv) {
+            // Destroy the employee map before replacing the DOM so the next
+            // render creates a fresh Leaflet instance on the new #employee-location-map node.
+            destroyEmployeeMap();
             contentDiv.innerHTML = html;
             
             // Re-execute scripts in injected HTML if any (GAS include might contain them)
@@ -409,6 +413,20 @@ function renderEmployeeView() {
     const checkinText = document.getElementById('checkin-btn-text');
     const checkoutText = document.getElementById('checkout-btn-text');
 
+    // Toggle skeleton vs buttons based on initial data loading
+    const buttonsSkeleton = document.getElementById('attendance-buttons-skeleton');
+    const buttonsContainer = document.getElementById('attendance-buttons-container');
+
+    if (buttonsSkeleton && buttonsContainer) {
+        if (state.dataLoaded) {
+            buttonsSkeleton.style.display = 'none';
+            buttonsContainer.style.setProperty('display', 'flex', 'important');
+        } else {
+            buttonsSkeleton.style.display = 'block';
+            buttonsContainer.style.setProperty('display', 'none', 'important');
+        }
+    }
+
     const checkinProcessing = state.checkInLoading || state.checkOutLoading || (state.geofenceEnabled && state.locationStatus === 'acquiring');
     const checkoutProcessing = state.checkInLoading || state.checkOutLoading || (state.geofenceEnabled && state.locationStatus === 'acquiring');
 
@@ -423,13 +441,12 @@ function renderEmployeeView() {
 
     // Load employee leave requests
     if (!state.employeeLeavesLoading && !state.employeeLeavesLoaded) {
-        loadEmployeeLeaveRequests();
+        // Do not fire here — loadEmployeeData sequences this after main data loads
     } else if (state.employeeLeavesLoaded) {
         renderEmployeeLeaveRequests();
     }
 
-    // Load employee schedule
-    loadEmployeeSchedule();
+    // Schedule is loaded sequentially from loadEmployeeData — do not trigger here
 
     // --- Location alerts and status ---
     const locationAlerts    = document.getElementById('location-alerts-container');
@@ -448,6 +465,13 @@ function renderEmployeeView() {
             alertHtml = `<div class="alert alert-warning mb-0 border-0 shadow-sm d-flex align-items-center">
                 <div class="spinner-border spinner-border-sm me-3" role="status"></div>
                 <div>${t('employeeDashboard.locationAcquiring')}</div>
+            </div>`;
+        } else if (state.locationAccuracyPoor) {
+            // Poor GPS — show map but block check-in. Shown regardless of within/outside.
+            const statusLabel = state.locationStatus === 'within' ? t('employeeDashboard.withinZone') : t('employeeDashboard.outsideZone');
+            alertHtml = `<div class="alert alert-warning mb-0 border-0 shadow-sm d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-alert-triangle me-3 flex-shrink-0" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" /><path d="M12 16h.01" /></svg>
+                <div><strong>${t('employeeDashboard.poorGpsSignal')}</strong> ${t('employeeDashboard.poorGpsAccuracy').replace('{accuracy}', Math.round(state.locationPayload?.accuracy || 0)).replace('{status}', statusLabel)}<br><small>${t('employeeDashboard.poorGpsCheckInDisabled')}</small></div>
             </div>`;
         } else if (state.locationStatus === 'within') {
             alertHtml = `<div class="alert alert-success mb-0 border-0 shadow-sm d-flex align-items-center">
@@ -486,18 +510,19 @@ function renderEmployeeView() {
             // Distance display
             if (distanceDisplay) {
                 if (state.locationStatus === 'outside' && state.locationDistance !== null && state.geofenceRadius !== null) {
-                    distanceDisplay.textContent = `You are ${state.locationDistance}m from the work location (max ${state.geofenceRadius}m allowed).`;
+                    distanceDisplay.textContent = t('employeeDashboard.distanceOutsideWork').replace('{distance}', state.locationDistance).replace('{radius}', state.geofenceRadius);
                 } else if (state.locationStatus === 'error' && state.locationErrorMessage) {
                     distanceDisplay.textContent = state.locationErrorMessage;
                 } else if (state.locationStatus === 'within' && state.locationDistance !== null) {
-                    distanceDisplay.textContent = `${state.locationDistance}m from work location.`;
+                    distanceDisplay.textContent = t('employeeDashboard.distanceFromWork').replace('{distance}', state.locationDistance);
                 } else {
                     distanceDisplay.textContent = '';
                 }
             }
 
             // Show/hide and enable/disable buttons based on location status
-            const canSubmit = state.locationStatus === 'within';
+            // Also block check-in when GPS accuracy is poor (anti-spoofing)
+            const canSubmit = state.locationStatus === 'within' && !state.locationAccuracyPoor;
             if (btnCheckinEl) {
                 btnCheckinEl.style.display = canSubmit ? '' : 'none';
                 btnCheckinEl.disabled = !canSubmit || checkinProcessing;
@@ -519,7 +544,7 @@ function renderEmployeeView() {
             }
             
             if (distanceDisplay && state.locationDistance !== null) {
-                distanceDisplay.textContent = `${state.locationDistance}m from work location.`;
+                distanceDisplay.textContent = t('employeeDashboard.distanceFromWork').replace('{distance}', state.locationDistance);
             }
 
             if (btnCheckinEl)  btnCheckinEl.style.display  = '';
@@ -554,18 +579,59 @@ function renderEmployeeView() {
     }
 }
 
-// Map instances for reuse
+// Map instances for reuse — reset to null whenever the view DOM is replaced.
 let _employeeMap = null;
 let _employeeMarker = null;
 let _employeeWorkMarker = null;
 let _employeeCircle = null;
 
-function updateEmployeeMap() {
-    const mapEl = document.getElementById('employee-location-map');
-    if (!mapEl) return;
+/**
+ * Destroy the employee Leaflet map and clear all cached layer references.
+ * Must be called before loadView() replaces the page HTML so that the next
+ * call to updateEmployeeMap() creates a fresh instance on the new DOM node.
+ */
+function destroyEmployeeMap() {
+    if (_employeeMap) {
+        console.log('[MAP] destroying employee map instance');
+        try {
+            _employeeMap.remove();
+        } catch (e) {
+            console.error('[MAP] Error during map.remove():', e);
+        }
+        _employeeMap = null;
+        _employeeMarker = null;
+        _employeeCircle = null;
+        _employeeWorkMarker = null;
+    } else {
+        const mapEl = document.getElementById('employee-location-map');
+        if (mapEl && mapEl.classList.contains('leaflet-container')) {
+            console.log('[MAP] orphaned Leaflet container found, clearing via ID');
+            mapEl.innerHTML = '';
+            mapEl.className = mapEl.className.replace(/\bleaflet-[^\s]+\b/g, '').trim();
+        }
+    }
+}
 
-    // Show map if we have work coordinates OR if we have acquired a user position
-    if ((!state.geofenceWorkLat && !state.locationPayload) || state.locationStatus === 'disabled') {
+function updateEmployeeMap() {
+    console.log('[MAP] updateEmployeeMap called', {
+        locationStatus: state.locationStatus,
+        geofenceEnabled: state.geofenceEnabled,
+        geofenceWorkLat: state.geofenceWorkLat,
+        geofenceWorkLng: state.geofenceWorkLng,
+        geofenceRadius: state.geofenceRadius,
+        locationPayload: state.locationPayload,
+        _employeeMapExists: !!_employeeMap,
+    });
+
+    const mapEl = document.getElementById('employee-location-map');
+    if (!mapEl) {
+        console.warn('[MAP] #employee-location-map element not found in DOM');
+        return;
+    }
+
+    // Show map only when we have at least one set of coordinates and location is not disabled.
+    if (state.locationStatus === 'disabled' || (!state.geofenceWorkLat && !state.locationPayload)) {
+        console.log('[MAP] hiding map — status disabled or no coordinates');
         mapEl.style.display = 'none';
         return;
     }
@@ -581,16 +647,50 @@ function updateEmployeeMap() {
     const centerLat = userLat || workLat;
     const centerLng = userLng || workLng;
 
-    if (!centerLat || !centerLng) return;
+    console.log('[MAP] coordinates', { userLat, userLng, workLat, workLng, radius, centerLat, centerLng });
+
+    if (!centerLat || !centerLng) {
+        console.warn('[MAP] no center coordinates available, aborting');
+        return;
+    }
 
     try {
+        // If the cached map container is no longer in the current DOM (happens after
+        // loadView replaces innerHTML), destroy the stale instance before recreating.
+        if (_employeeMap && !document.body.contains(_employeeMap.getContainer())) {
+            console.log('[MAP] stale map instance detected (container detached), destroying');
+            destroyEmployeeMap();
+        }
+
         if (!_employeeMap) {
-            _employeeMap = L.map('employee-location-map').setView([centerLat, centerLng], 15);
+            console.log('[MAP] creating new Leaflet map instance');
+            // Disable scrollWheelZoom to prevent "conflict" with page scrolling
+            _employeeMap = L.map('employee-location-map', { 
+                scrollWheelZoom: false,
+                touchZoom: 'center'
+            }).setView([centerLat, centerLng], 15);
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(_employeeMap);
+
+            console.log('[MAP] Leaflet map created successfully');
+            // Defer invalidateSize so the browser has painted the newly-visible
+            // container before Leaflet measures its dimensions.
+            setTimeout(() => { 
+                if (_employeeMap) {
+                    console.log('[MAP] deferred invalidateSize for new map');
+                    _employeeMap.invalidateSize();
+                }
+            }, 250);
         } else {
-            _employeeMap.invalidateSize();
+            // Recalculate tile layout after a small delay to ensure DOM reflow (e.g. from schedule loading) is complete
+            setTimeout(() => {
+                if (_employeeMap) {
+                    console.log('[MAP] deferred invalidateSize for existing map');
+                    _employeeMap.invalidateSize();
+                }
+            }, 250);
         }
 
         // Work Marker and Geofence Circle (if work coordinates exist)
@@ -599,7 +699,7 @@ function updateEmployeeMap() {
 
             // Work Marker
             if (!_employeeWorkMarker) {
-                _employeeWorkMarker = L.marker(workPos, { 
+                _employeeWorkMarker = L.marker(workPos, {
                     icon: L.icon({
                         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -608,9 +708,10 @@ function updateEmployeeMap() {
                         popupAnchor: [1, -34],
                         shadowSize: [41, 41]
                     }),
-                    title: 'Work Location' 
+                    title: 'Work Location'
                 }).addTo(_employeeMap);
                 _employeeWorkMarker.bindPopup('Work Location');
+                console.log('[MAP] work marker added');
             } else {
                 _employeeWorkMarker.setLatLng(workPos);
             }
@@ -622,11 +723,12 @@ function updateEmployeeMap() {
                     color: statusColor,
                     fillColor: statusColor,
                     fillOpacity: 0.15,
-                    radius: radius
+                    radius: radius || 100
                 }).addTo(_employeeMap);
+                console.log('[MAP] geofence circle added, radius:', radius || 100);
             } else {
                 _employeeCircle.setLatLng(workPos);
-                _employeeCircle.setRadius(radius);
+                if (radius) _employeeCircle.setRadius(radius);
                 _employeeCircle.setStyle({ color: statusColor, fillColor: statusColor });
             }
         }
@@ -636,21 +738,26 @@ function updateEmployeeMap() {
             const userPos = [userLat, userLng];
             if (!_employeeMarker) {
                 _employeeMarker = L.marker(userPos, { title: 'Your Location' }).addTo(_employeeMap);
-                _employeeMarker.bindPopup('You are here').openPopup();
+                _employeeMarker.bindPopup('You are here'); // removed .openPopup() to be less intrusive
+                console.log('[MAP] user marker added at', userPos);
             } else {
                 _employeeMarker.setLatLng(userPos);
             }
 
-            // Adjust view to fit both if possible
+            // Fit view to show both user and work location when both are available
             if (workLat && workLng) {
                 const bounds = L.latLngBounds([[userLat, userLng], [workLat, workLng]]);
                 _employeeMap.fitBounds(bounds, { padding: [30, 30] });
             } else {
                 _employeeMap.setView([userLat, userLng], 15);
             }
+        } else if (workLat && workLng) {
+            // No user position yet (still acquiring) — keep map centred on work location
+            console.log('[MAP] no user position yet, centring on work location');
+            _employeeMap.setView([workLat, workLng], 15);
         }
     } catch (e) {
-        console.error('Leaflet Employee Map Error:', e);
+        console.error('[MAP] Leaflet Employee Map Error:', e);
     }
 }
 
@@ -991,13 +1098,25 @@ async function loadEmployeeSchedule() {
         return;
     }
 
+    // Guard against concurrent calls while the dynamic import is in flight.
+    // Without this, rapid re-renders (e.g. location state changes) can create
+    // multiple component instances and fire duplicate GAS calls.
+    if (state._scheduleComponentLoading) return;
+    state._scheduleComponentLoading = true;
+
     try {
         const { MySchedule } = await import('./components/MySchedule.js');
-        const component = new MySchedule(state, setState, callGas);
-        state.currentMyScheduleComponent = component;
-        await component.loadData();
+        // Check again after the async import — another render may have already
+        // created the component while we were waiting.
+        if (!state.currentMyScheduleComponent) {
+            const component = new MySchedule(state, setState, callGas);
+            state.currentMyScheduleComponent = component;
+            await component.loadData();
+        }
     } catch (error) {
         console.error('Failed to load MySchedule component:', error);
+    } finally {
+        state._scheduleComponentLoading = false;
     }
 }
 
@@ -2356,18 +2475,36 @@ const doLogin = async (e) => {
 const logout = () => {
     localStorage.removeItem('absen_token');
     localStorage.removeItem('absen_user');
-    setState({ token: null, user: null });
+    
+    // Clear component instances and sensitive data from state
+    setState({ 
+        token: null, 
+        user: null,
+        dataLoaded: false,
+        attendanceHistory: [],
+        locationPayload: null,
+        locationStatus: 'disabled',
+        currentLeaveComponent: null,
+        currentScheduleComponent: null,
+        currentMyScheduleComponent: null,
+        employeeLeavesLoaded: false,
+        managementLoaded: false,
+        logsLoaded: false,
+        manualAttLoaded: false,
+        dailyAttendanceLoaded: false
+    });
+
     loadView('login');
 };
 
 const loadEmployeeData = async (showPageSpinner = true) => {
     if (showPageSpinner) setState({ dataLoaded: false, dataError: '' });
     try {
-        // Fetch history and geofence settings in parallel
-        const [histRes, geoRes] = await Promise.all([
-            callGas('getMyHistory', state.token),
-            callGas('getGeofenceSettings', state.token)
-        ]);
+        // Fetch history and geofence settings sequentially — google.script.run
+        // does not support concurrent calls; parallel requests cause one to be dropped.
+        const histRes = await callGas('getMyHistory', state.token);
+        // Use the public endpoint for geofence settings as employees cannot access the admin-only getGeofenceSettings
+        const geoRes  = await callGas('getGeofenceSettingsPublic');
 
         const updates = {};
 
@@ -2397,11 +2534,19 @@ const loadEmployeeData = async (showPageSpinner = true) => {
 
         // Always attempt to acquire location if office coordinates are available, 
         // even if enforcement (geofenceEnabled) is currently off.
-        if (state.geofenceWorkLat && state.geofenceWorkLng) {
-            startLocationAcquisition();
+        // GPS acquisition is async — fire it and continue loading sub-data sequentially.
+        // Start location acquisition if geofencing is enabled or if work coordinates are available
+        // We use the values from the current state (newly updated by setState(updates))
+        if (state.geofenceEnabled || (state.geofenceWorkLat && state.geofenceWorkLng)) {
+            startLocationAcquisition(); // non-blocking — runs in background
         } else {
             setState({ locationStatus: 'disabled', locationPayload: null });
         }
+
+        // Load secondary data sequentially to avoid concurrent google.script.run calls.
+        // Leave requests first, then schedule.
+        await loadEmployeeLeaveRequests();
+        await loadEmployeeSchedule();
     } catch {
         setState({
             dataLoaded: true,
@@ -2412,18 +2557,14 @@ const loadEmployeeData = async (showPageSpinner = true) => {
 };
 
 const startLocationAcquisition = async () => {
-    setState({ locationStatus: 'acquiring', locationPayload: null, locationDistance: null, locationErrorMessage: '' });
+    setState({ locationStatus: 'acquiring', locationPayload: null, locationAccuracyPoor: false, locationDistance: null, locationErrorMessage: '' });
     try {
         const { GeolocationService, haversineDistance } = await import('./utils/GeolocationService.js');
         const coords = await GeolocationService.getCurrentPosition(10000);
 
-        if (coords.accuracy > 200) {
-            setState({
-                locationStatus: 'error',
-                locationPayload: coords,
-                locationErrorMessage: `GPS accuracy is insufficient (${Math.round(coords.accuracy)}m). Please move to an open area and try again.`
-            });
-            return;
+        const accuracyPoor = coords.accuracy > 200;
+        if (accuracyPoor) {
+            console.warn(`[MAP] Low GPS accuracy: ${Math.round(coords.accuracy)}m — showing map but blocking check-in`);
         }
 
         // Compute client-side distance for UX (server is authoritative)
@@ -2434,14 +2575,17 @@ const startLocationAcquisition = async () => {
             status = distance <= state.geofenceRadius ? 'within' : 'outside';
         } else {
             status = 'error';
-            setState({ locationErrorMessage: 'Work location not configured. Please contact administrator.' });
+            setState({ locationErrorMessage: t('employeeDashboard.workLocationNotConfigured') });
         }
 
         setState({
             locationStatus: status,
             locationPayload: coords,
+            locationAccuracyPoor: accuracyPoor,
             locationDistance: distance,
-            locationErrorMessage: ''
+            locationErrorMessage: accuracyPoor
+                ? t('employeeDashboard.poorGpsLowAccuracy').replace('{accuracy}', Math.round(coords.accuracy))
+                : ''
         });
     } catch (errMsg) {
         // Translate GeolocationService error messages
@@ -2463,6 +2607,7 @@ const startLocationAcquisition = async () => {
         setState({
             locationStatus: 'error',
             locationPayload: null,
+            locationAccuracyPoor: false,
             locationErrorMessage: translatedError
         });
     }
@@ -2568,10 +2713,9 @@ function initScannerButton() {
 const loadAdminData = async (showPageSpinner = true) => {
     setState({ loading: true, dataError: '', ...(showPageSpinner && { dataLoaded: false }) });
     try {
-        const [dashRes, settingsRes] = await Promise.all([
-            callGas('getDashboardData', state.token),
-            callGas('getSystemSettings', state.token)
-        ]);
+        // Sequential calls — google.script.run does not support concurrent requests.
+        const dashRes     = await callGas('getDashboardData', state.token);
+        const settingsRes = await callGas('getSystemSettings', state.token);
 
         if (dashRes && dashRes.status === 'success') {
             const updates = {
