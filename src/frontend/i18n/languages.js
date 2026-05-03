@@ -146,7 +146,21 @@ export const translations = {
             locationTracking: 'Location Tracking',
             locationWithinRadius: 'You are within the work zone radius ({radius}m).',
             locationOutsideRadius: 'You are outside the work zone ({distance}m away). Max allowed: {radius}m.',
-            locationAcquiring: 'Determining your exact location relative to the office...'
+            locationAcquiring: 'Determining your exact location relative to the office...',
+            acquiring: 'Acquiring\u2026',
+            within: 'Within Zone',
+            outside: 'Outside Zone',
+            error: 'Location Error',
+            disabled: 'Location Disabled',
+            distanceFromWork: '{distance}m from work location.',
+            distanceOutsideWork: 'You are {distance}m from the work location (max {radius}m allowed).',
+            poorGpsSignal: 'Poor GPS signal',
+            poorGpsAccuracy: '({accuracy}m accuracy, {status})',
+            poorGpsCheckInDisabled: 'Check-in is disabled. Please ask your admin to record attendance manually.',
+            poorGpsLowAccuracy: 'GPS accuracy is low ({accuracy}m). Check-in is disabled \u2014 contact admin for manual attendance.',
+            withinZone: 'within zone',
+            outsideZone: 'outside zone',
+            workLocationNotConfigured: 'Work location not configured. Please contact administrator.'
         },
         // Admin Panel
         adminPanel: {
@@ -791,7 +805,21 @@ export const translations = {
             locationTracking: 'Pelacakan Lokasi',
             locationWithinRadius: 'Anda berada di dalam radius area kerja ({radius}m).',
             locationOutsideRadius: 'Anda berada di luar area kerja (jarak {distance}m). Maksimum: {radius}m.',
-            locationAcquiring: 'Menentukan lokasi Anda relatif terhadap kantor...'
+            locationAcquiring: 'Menentukan lokasi Anda relatif terhadap kantor...',
+            acquiring: 'Menentukan\u2026',
+            within: 'Dalam Zona',
+            outside: 'Luar Zona',
+            error: 'Kesalahan Lokasi',
+            disabled: 'Lokasi Dinonaktifkan',
+            distanceFromWork: '{distance}m dari lokasi kerja.',
+            distanceOutsideWork: 'Anda berada {distance}m dari lokasi kerja (maks {radius}m diizinkan).',
+            poorGpsSignal: 'Sinyal GPS buruk',
+            poorGpsAccuracy: '(akurasi {accuracy}m, {status})',
+            poorGpsCheckInDisabled: 'Absen masuk dinonaktifkan. Harap minta admin untuk mencatat kehadiran secara manual.',
+            poorGpsLowAccuracy: 'Akurasi GPS rendah ({accuracy}m). Absen masuk dinonaktifkan \u2014 hubungi admin untuk absensi manual.',
+            withinZone: 'dalam zona',
+            outsideZone: 'luar zona',
+            workLocationNotConfigured: 'Lokasi kerja belum dikonfigurasi. Harap hubungi administrator.'
         },
         // Admin Panel
         adminPanel: {

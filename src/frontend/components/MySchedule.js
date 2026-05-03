@@ -34,8 +34,14 @@ export class MySchedule {
     }
 
     render() {
+        // Defensive: ensure we only render if our container exists and we are the current active instance
         const container = document.getElementById('employee-schedule-container');
         if (!container) return;
+        
+        if (this.state.currentMyScheduleComponent !== this) {
+            console.log('[MySchedule] component instance is stale, skipping render');
+            return;
+        }
 
         if (!this.scheduleData) {
             this.loadData();
