@@ -159,7 +159,7 @@ export class Settings {
                 <div class="container-xl">
                     <div class="row g-2 align-items-center">
                         <div class="col">
-                            <div class="page-pretitle">${t('adminPanel')}</div>
+                            <div class="page-pretitle">${t('adminPanel.adminPanel')}</div>
                             <h2 class="page-title">${t('settings')}</h2>
                         </div>
                     </div>

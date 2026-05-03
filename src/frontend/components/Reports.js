@@ -228,7 +228,7 @@ export class Reports {
         if (period === 'custom') {
             const s = document.getElementById('report-date-start')?.value || 'start';
             const e = document.getElementById('report-date-end')?.value || 'end';
-            rangeLabel = `${s} to ${e}`;
+            rangeLabel = `${s} ${t('rangeTo')} ${e}`;
             fileSuffix = `${s}_${e}`;
         } else {
             rangeLabel = period.charAt(0).toUpperCase() + period.slice(1);
@@ -251,7 +251,7 @@ export class Reports {
         if (period === 'custom') {
             const s = document.getElementById('report-date-start')?.value || 'start';
             const e = document.getElementById('report-date-end')?.value || 'end';
-            rangeLabel = `${s} to ${e}`;
+            rangeLabel = `${s} ${t('rangeTo')} ${e}`;
             fileSuffix = `${s}_${e}`;
         } else {
             rangeLabel = period.charAt(0).toUpperCase() + period.slice(1);
@@ -308,7 +308,7 @@ export class Reports {
         if (period === 'custom') {
             const s = document.getElementById('report-date-start')?.value || 'start';
             const e = document.getElementById('report-date-end')?.value || 'end';
-            rangeLabel = `${s} to ${e}`;
+            rangeLabel = `${s} ${t('rangeTo')} ${e}`;
         } else {
             rangeLabel = period.charAt(0).toUpperCase() + period.slice(1);
         }
@@ -352,7 +352,7 @@ export class Reports {
 </head>
 <body>
     <h2>${this.state.organizationName || t('attendanceReports')}</h2>
-    <p class="subtitle">Period: ${rangeLabel}</p>
+    <p class="subtitle">${t('periodLabel')}: ${rangeLabel}</p>
     <table>
         <thead>
             <tr>

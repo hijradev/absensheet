@@ -270,7 +270,8 @@ export const translations = {
         monthlyAttendanceRateTrend: 'Monthly Attendance Rate Trend',
         top10BestPerformers: 'Top 10 Best Performers — Timeliness',
         weeklyRecap: 'Weekly Recap',
-        aggregateOnTime: 'Aggregate on-time attendance % across all employees, by month',
+        aggregateOnTime: 'Aggregate attendance by month',
+        aggregateByWeek: 'Aggregate attendance by week',
         
         // User Management
         addNewUser: 'Add New User',
@@ -660,6 +661,32 @@ export const translations = {
         savingEllipsis: 'Saving…',
         popupBlocked: 'Pop-up blocked. Please allow pop-ups to print',
 
+        // Print / Export labels
+        printedOn: 'Printed on',
+        total: 'Total',
+        periodLabel: 'Period',
+        rangeTo: 'to',
+        printTitle_userManagement: 'User Management',
+        printTitle_dailyAttendance: 'Daily Attendance Report',
+        printTitle_activityLogs: 'Activity Logs Report',
+        printTitle_qrCodes: 'Employee QR Codes',
+        printCol_date: 'Date',
+        printCol_employee: 'Employee',
+        printCol_group: 'Group',
+        printCol_shift: 'Shift',
+        printCol_in: 'In',
+        printCol_inStatus: 'In Status',
+        printCol_out: 'Out',
+        printCol_outStatus: 'Out Status',
+        printCol_timestamp: 'Timestamp',
+        printCol_userId: 'User ID',
+        printCol_action: 'Action',
+        printNoData: 'No data to print',
+        printNoLogs: 'No logs to print',
+        printNoEmployees: 'No employees to print',
+        printGenerateFirst: 'Please generate QR codes first',
+        printUsers: '{count} users',
+
         // Profile
         profile: {
             myProfile: 'My Profile',
@@ -929,7 +956,8 @@ export const translations = {
         monthlyAttendanceRateTrend: 'Tren Tingkat Kehadiran Bulanan',
         top10BestPerformers: '10 Karyawan Terbaik — Ketepatan Waktu',
         weeklyRecap: 'Rekap Mingguan',
-        aggregateOnTime: 'Persentase kehadiran tepat waktu rata-rata semua karyawan, per bulan',
+        aggregateOnTime: 'Agregat kehadiran per bulan',
+        aggregateByWeek: 'Agregat kehadiran per minggu',
         
         // User Management
         addNewUser: 'Tambah Pengguna Baru',
@@ -1336,7 +1364,33 @@ export const translations = {
         
         // General
         savingEllipsis: 'Menyimpan…',
-        popupBlocked: 'Pop-up diblokir. Harap izinkan pop-up untuk mencetak'
+        popupBlocked: 'Pop-up diblokir. Harap izinkan pop-up untuk mencetak',
+
+        // Print / Export labels
+        printedOn: 'Dicetak pada',
+        total: 'Total',
+        periodLabel: 'Periode',
+        rangeTo: 'sampai',
+        printTitle_userManagement: 'Manajemen Pengguna',
+        printTitle_dailyAttendance: 'Laporan Absensi Harian',
+        printTitle_activityLogs: 'Laporan Log Aktivitas',
+        printTitle_qrCodes: 'Kode QR Karyawan',
+        printCol_date: 'Tanggal',
+        printCol_employee: 'Karyawan',
+        printCol_group: 'Grup',
+        printCol_shift: 'Shift',
+        printCol_in: 'Masuk',
+        printCol_inStatus: 'Status Masuk',
+        printCol_out: 'Keluar',
+        printCol_outStatus: 'Status Keluar',
+        printCol_timestamp: 'Waktu',
+        printCol_userId: 'ID Pengguna',
+        printCol_action: 'Aksi',
+        printNoData: 'Tidak ada data untuk dicetak',
+        printNoLogs: 'Tidak ada log untuk dicetak',
+        printNoEmployees: 'Tidak ada karyawan untuk dicetak',
+        printGenerateFirst: 'Harap buat kode QR terlebih dahulu',
+        printUsers: '{count} pengguna',
     }
 };
 

@@ -128,8 +128,9 @@ body {
 .premium-card {
     border: none;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease;
+    height: 100%;
 }
 
 .premium-card:hover {
@@ -139,7 +140,7 @@ body {
 .glass-header {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Transitions */
@@ -154,7 +155,7 @@ body {
 .admin-sidebar {
     width: 250px;
     background: #fff;
-    border-right: 1px solid rgba(0,0,0,0.05);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
     padding: 1.5rem 0;
 }
 
@@ -294,7 +295,7 @@ body {
 .modal-content {
     background-color: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     border: none;
 }
 
@@ -375,7 +376,7 @@ body {
 }
 
 /* Table action buttons spacing */
-td .btn + .btn {
+td .btn+.btn {
     margin-left: 0.25rem;
 }
 
@@ -410,10 +411,21 @@ td .btn + .btn {
     opacity: 0.65;
 }
 
-#admin-view-attendance .card.border-success { border-color: #2fb344 !important; }
-#admin-view-attendance .card.border-warning { border-color: #f76707 !important; }
-#admin-view-attendance .card.border-danger  { border-color: #d63939 !important; }
-#admin-view-attendance .card.border-info    { border-color: #4299e1 !important; }
+#admin-view-attendance .card.border-success {
+    border-color: #2fb344 !important;
+}
+
+#admin-view-attendance .card.border-warning {
+    border-color: #f76707 !important;
+}
+
+#admin-view-attendance .card.border-danger {
+    border-color: #d63939 !important;
+}
+
+#admin-view-attendance .card.border-info {
+    border-color: #4299e1 !important;
+}
 
 /* Attendance summary card hover — disable lift to keep them static */
 #admin-view-attendance .premium-card:hover {
@@ -431,10 +443,11 @@ td .btn + .btn {
 
 /* Print styles for PDF export */
 @media print {
+
     /* Hide navigation and controls */
-    .navbar, 
-    .admin-sidebar, 
-    .btn, 
+    .navbar,
+    .admin-sidebar,
+    .btn,
     .form-control,
     .form-select,
     .card-footer,
@@ -442,23 +455,23 @@ td .btn + .btn {
     .page-loading-overlay {
         display: none !important;
     }
-    
+
     /* Full width for content */
     .admin-content {
         padding: 0;
         width: 100%;
     }
-    
+
     /* Optimize table for print */
     .table {
         font-size: 10pt;
     }
-    
+
     .table th,
     .table td {
         padding: 0.25rem !important;
     }
-    
+
     /* Card styling for print */
     .card {
         border: 1px solid #ddd;
@@ -466,35 +479,47 @@ td .btn + .btn {
         page-break-inside: avoid;
         margin-bottom: 1rem;
     }
-    
+
     .card-header {
         background-color: #f8f9fa !important;
         border-bottom: 2px solid #000;
         padding: 0.5rem;
     }
-    
+
     /* Summary cards in a row */
     .row-cards {
         display: flex;
         flex-wrap: wrap;
         page-break-inside: avoid;
     }
-    
+
     /* Ensure colors print correctly */
-    .text-success { color: #2fb344 !important; }
-    .text-warning { color: #f76707 !important; }
-    .text-danger { color: #d63939 !important; }
-    .text-info { color: #4299e1 !important; }
-    
+    .text-success {
+        color: #2fb344 !important;
+    }
+
+    .text-warning {
+        color: #f76707 !important;
+    }
+
+    .text-danger {
+        color: #d63939 !important;
+    }
+
+    .text-info {
+        color: #4299e1 !important;
+    }
+
     /* Page breaks */
     .card {
         page-break-after: auto;
     }
-    
-    h2, h3 {
+
+    h2,
+    h3 {
         page-break-after: avoid;
     }
-    
+
     /* Print title */
     body::before {
         content: "Attendance Report";
@@ -517,23 +542,23 @@ td .btn + .btn {
     background-position: center;
     border-radius: 2px;
     vertical-align: middle;
-    border: 1px solid rgba(0,0,0,0.08);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* US flag — red/white stripes + blue canton (simplified inline SVG) */
 .flag-us {
     background-color: #B22234;
-    background-image: repeating-linear-gradient(
-        to bottom,
-        transparent 0px, transparent 1.15px,
-        white 1.15px, white 2.3px
-    );
+    background-image: repeating-linear-gradient(to bottom,
+            transparent 0px, transparent 1.15px,
+            white 1.15px, white 2.3px);
     position: relative;
 }
+
 .flag-us::before {
     content: '';
     position: absolute;
-    top: 0; left: 0;
+    top: 0;
+    left: 0;
     width: 40%;
     height: 54%;
     background: #3C3B6E;
@@ -566,7 +591,7 @@ td .btn + .btn {
     height: 100%;
 }
 
-.form-selectgroup-input:checked + .form-selectgroup-label {
+.form-selectgroup-input:checked+.form-selectgroup-label {
     border-color: var(--tblr-primary);
     background: rgba(var(--tblr-primary-rgb), 0.05);
 }
@@ -576,254 +601,261 @@ td .btn + .btn {
 }
 
 /* Password strength hint */
-#new-password.is-valid ~ .form-hint,
-#new-password.is-invalid ~ .form-hint {
+#new-password.is-valid~.form-hint,
+#new-password.is-invalid~.form-hint {
     display: none;
 }
 
 /* ===== RESPONSIVE: Admin Sidebar — Mobile ===== */
 @media (max-width: 767px) {
-  /* Sidebar slides off-screen by default */
-  .admin-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    z-index: 1040;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    overflow-y: auto;
-    width: 250px;
-  }
 
-  /* Sidebar open state — triggered by body.sidebar-open */
-  body.sidebar-open .admin-sidebar {
-    transform: translateX(0);
-  }
+    /* Sidebar slides off-screen by default */
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1040;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        overflow-y: auto;
+        width: 250px;
+    }
 
-  /* Overlay */
-  .sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 1039;
-  }
+    /* Sidebar open state — triggered by body.sidebar-open */
+    body.sidebar-open .admin-sidebar {
+        transform: translateX(0);
+    }
 
-  body.sidebar-open .sidebar-overlay {
-    display: block;
-  }
+    /* Overlay */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 1039;
+    }
 
-  /* Admin layout: full width on mobile */
-  .admin-layout {
-    flex-direction: column;
-  }
+    body.sidebar-open .sidebar-overlay {
+        display: block;
+    }
 
-  .admin-content {
-    padding: 1rem;
-    width: 100%;
-  }
+    /* Admin layout: full width on mobile */
+    .admin-layout {
+        flex-direction: column;
+    }
 
-  /* Touch targets: sidebar nav items */
-  .admin-sidebar-item {
-    min-height: 48px;
-    padding: 0.75rem 1.5rem;
-  }
+    .admin-content {
+        padding: 1rem;
+        width: 100%;
+    }
 
-  .admin-sidebar-group-header {
-    min-height: 48px;
-  }
+    /* Touch targets: sidebar nav items */
+    .admin-sidebar-item {
+        min-height: 48px;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .admin-sidebar-group-header {
+        min-height: 48px;
+    }
 }
 
 /* ===== RESPONSIVE: Admin Sidebar — Tablet ===== */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .admin-sidebar {
-    width: 60px;
-    overflow: hidden;
-    transition: width 0.2s ease;
-    flex-shrink: 0;
-  }
+    .admin-sidebar {
+        width: 60px;
+        overflow: hidden;
+        transition: width 0.2s ease;
+        flex-shrink: 0;
+    }
 
-  .admin-sidebar:hover,
-  .admin-sidebar:focus-within {
-    width: 250px;
-  }
+    .admin-sidebar:hover,
+    .admin-sidebar:focus-within {
+        width: 250px;
+    }
 
-  /* Hide text labels in rail mode */
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item span,
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-label span,
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-chevron,
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-subitem span {
-    display: none;
-  }
+    /* Hide text labels in rail mode */
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item span,
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-label span,
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-chevron,
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-subitem span {
+        display: none;
+    }
 
-  /* Center icons in rail mode */
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item,
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-header {
-    justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
-  }
+    /* Center icons in rail mode */
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-item,
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-group-header {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
 
-  /* Hide submenu groups in rail mode */
-  .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-submenu {
-    display: none;
-  }
+    /* Hide submenu groups in rail mode */
+    .admin-sidebar:not(:hover):not(:focus-within) .admin-sidebar-submenu {
+        display: none;
+    }
 
-  .admin-content {
-    padding: 1.25rem;
-  }
+    .admin-content {
+        padding: 1.25rem;
+    }
 }
 
 /* ===== RESPONSIVE: Admin Navbar — Mobile ===== */
 @media (max-width: 767px) {
-  /* Hamburger button — visible only on mobile */
-  #btn-hamburger {
-    display: inline-flex;
-  }
 
-  /* Logout text hidden on mobile */
-  .logout-btn-text {
-    display: none;
-  }
+    /* Hamburger button — visible only on mobile */
+    #btn-hamburger {
+        display: inline-flex;
+    }
 
-  /* Navbar fixed at top */
-  .glass-header {
-    position: sticky;
-    top: 0;
-    z-index: 1030;
-  }
+    /* Logout text hidden on mobile */
+    .logout-btn-text {
+        display: none;
+    }
+
+    /* Navbar fixed at top */
+    .glass-header {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+    }
 }
 
 @media (min-width: 768px) {
-  #btn-hamburger {
-    display: none;
-  }
+    #btn-hamburger {
+        display: none;
+    }
 }
 
 /* ===== RESPONSIVE: Data Tables — Mobile ===== */
 
 /* Ensure all table wrappers scroll horizontally */
 .table-responsive {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 767px) {
-  /* Hide low-priority columns */
-  .col-hide-mobile {
-    display: none !important;
-  }
 
-  /* Action button text hidden on mobile */
-  .btn-action-text {
-    display: none;
-  }
+    /* Hide low-priority columns */
+    .col-hide-mobile {
+        display: none !important;
+    }
 
-  /* Compact pagination: hide page number buttons */
-  .pagination .page-item.page-number {
-    display: none;
-  }
+    /* Action button text hidden on mobile */
+    .btn-action-text {
+        display: none;
+    }
 
-  /* Table font size reduction for readability */
-  .table {
-    font-size: 0.8125rem;
-  }
+    /* Compact pagination: hide page number buttons */
+    .pagination .page-item.page-number {
+        display: none;
+    }
+
+    /* Table font size reduction for readability */
+    .table {
+        font-size: 0.8125rem;
+    }
 }
 
 /* ===== RESPONSIVE: Filter Bars — Mobile ===== */
 @media (max-width: 767px) {
-  /* Stack all filter bar children vertically */
-  .filter-bar-row {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.75rem !important;
-  }
 
-  .filter-bar-row > * {
-    width: 100% !important;
-  }
+    /* Stack all filter bar children vertically */
+    .filter-bar-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
 
-  .filter-bar-row .form-select,
-  .filter-bar-row .form-control,
-  .filter-bar-row input[type="date"] {
-    width: 100% !important;
-    min-width: unset !important;
-  }
+    .filter-bar-row>* {
+        width: 100% !important;
+    }
 
-  /* Export button text hidden on mobile */
-  .export-btn-text {
-    display: none;
-  }
+    .filter-bar-row .form-select,
+    .filter-bar-row .form-control,
+    .filter-bar-row input[type="date"] {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+
+    /* Export button text hidden on mobile */
+    .export-btn-text {
+        display: none;
+    }
 }
 
 /* ===== RESPONSIVE: Modals — Bottom Sheet ===== */
 @media (max-width: 767px) {
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
 
-  .modal-overlay .modal-dialog {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    border-radius: 16px 16px 0 0;
-    overflow: hidden;
-  }
+    .modal-overlay .modal-dialog {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 16px 16px 0 0;
+        overflow: hidden;
+    }
 
-  .modal-overlay .modal-content {
-    border-radius: 16px 16px 0 0;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
+    .modal-overlay .modal-content {
+        border-radius: 16px 16px 0 0;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
 
-  /* Stack multi-column form rows */
-  .modal-body .row > [class*="col-"] {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
+    /* Stack multi-column form rows */
+    .modal-body .row>[class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
 }
 
 /* ===== RESPONSIVE: Touch Targets — Mobile ===== */
 @media (max-width: 767px) {
-  /* Minimum 44px touch targets for all buttons */
-  .btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
 
-  /* Minimum 44px height for form inputs */
-  .form-control,
-  .form-select {
-    min-height: 44px;
-    font-size: 16px; /* Prevents iOS Safari auto-zoom */
-  }
+    /* Minimum 44px touch targets for all buttons */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
 
-  /* Pagination buttons */
-  .page-link {
-    min-height: 44px;
-    min-width: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    /* Minimum 44px height for form inputs */
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        font-size: 16px;
+        /* Prevents iOS Safari auto-zoom */
+    }
+
+    /* Pagination buttons */
+    .page-link {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 /* ===== RESPONSIVE: Employee Dashboard — Mobile ===== */
 @media (max-width: 767px) {
-  /* Check In / Check Out buttons: full width, large touch target */
-  #btn-checkin,
-  #btn-checkout {
-    min-height: 52px;
-    flex: 1;
-  }
 
-  /* Navbar: prevent overflow */
-  #view-employee .navbar .navbar-nav {
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
+    /* Check In / Check Out buttons: full width, large touch target */
+    #btn-checkin,
+    #btn-checkout {
+        min-height: 52px;
+        flex: 1;
+    }
+
+    /* Navbar: prevent overflow */
+    #view-employee .navbar .navbar-nav {
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
 }
 
 /* ---- Monthly Schedule Table ---- */
@@ -832,12 +864,14 @@ td .btn + .btn {
     left: 0;
     background: #fff;
     z-index: 2;
-    box-shadow: 2px 0 4px rgba(0,0,0,0.06);
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
 }
+
 .sched-table thead .sticky-col {
     z-index: 3;
     background: #f8fafc;
 }
+
 .sched-table td.border-primary {
     outline: 2px solid #206bc4;
     outline-offset: -2px;
@@ -846,7 +880,8 @@ td .btn + .btn {
 /* Ensure map container has a stable height to avoid layout shift and Leaflet initialization issues */
 #employee-location-map {
     min-height: 300px;
-    background-color: #f8fafc; /* placeholder background while loading */
+    background-color: #f8fafc;
+    /* placeholder background while loading */
 }
 
 /* ---- Employee Schedule Calendar ---- */
@@ -854,6 +889,7 @@ td .btn + .btn {
     margin-left: 0;
     margin-right: 0;
 }
+
 .sched-calendar .col {
     padding: 2px;
     flex: 0 0 calc(100% / 7);

@@ -403,6 +403,12 @@ function renderEmployeeView() {
     const nameEl = document.getElementById('employee-name');
     if (nameEl) nameEl.textContent = state.user?.name || '';
 
+    // Update navbar title with organization name
+    const brandSpan = document.querySelector('#view-employee .navbar-brand span');
+    if (brandSpan) {
+        brandSpan.textContent = state.organizationName || t('employeeDashboard.dashboard');
+    }
+
     // Check In / Check Out button loading state
     const btnCheckin = document.getElementById('btn-checkin');
     const btnCheckout = document.getElementById('btn-checkout');
@@ -1534,7 +1540,7 @@ function printUsers() {
         filtered = filtered.filter(u => u.role === state.userRoleFilter);
     }
 
-    if (!filtered.length) { alert('No data to print'); return; }
+    if (!filtered.length) { alert(t('noDataToPrint')); return; }
 
     const rows = filtered.map(u => `
         <tr>
@@ -1547,7 +1553,7 @@ function printUsers() {
     win.document.write(`<!DOCTYPE html>
 <html>
 <head>
-    <title>User Management</title>
+    <title>${t('printTitle_userManagement')}</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 24px; }
         h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 8px; }
@@ -1561,7 +1567,7 @@ function printUsers() {
 </head>
 <body>
     <h1>${t('userManagement')}</h1>
-    <div class="meta">Printed: ${new Date().toLocaleString()} &nbsp;|&nbsp; Total: ${filtered.length} users</div>
+    <div class="meta">${t('printedOn')}: ${new Date().toLocaleString()} &nbsp;|&nbsp; ${t('total')}: ${filtered.length} ${t('name').toLowerCase()}</div>
     <table>
         <thead><tr><th>${t('id')}</th><th>${t('name')}</th><th>${t('role')}</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -2528,6 +2534,7 @@ const loadEmployeeData = async (showPageSpinner = true) => {
             updates.geofenceRadius   = gd.radius   || null;
             updates.geofenceWorkLat  = gd.latitude  !== null && gd.latitude  !== undefined ? gd.latitude  : null;
             updates.geofenceWorkLng  = gd.longitude !== null && gd.longitude !== undefined ? gd.longitude : null;
+            updates.organizationName = gd.organizationName || '';
         }
 
         setState(updates);
@@ -3245,7 +3252,7 @@ const getFilteredAttendance = () => {
 const exportAttendanceCsv = () => {
     const filtered = getFilteredAttendance();
     if (filtered.length === 0) {
-        setState({ errorMessage: 'No attendance data to export.' });
+        setState({ errorMessage: t('noDataToExport') });
         return;
     }
 
@@ -3258,8 +3265,8 @@ const exportAttendanceCsv = () => {
     }
 
     const headers = isRange
-        ? ['No', 'Date', 'Employee ID', 'Employee Name', 'Position', 'Shift', 'Shift Start', 'Shift End', 'Check In', 'In Status', 'Check Out', 'Out Status']
-        : ['No', 'Employee ID', 'Employee Name', 'Position', 'Shift', 'Shift Start', 'Shift End', 'Check In', 'In Status', 'Check Out', 'Out Status'];
+        ? ['No', t('printCol_date'), t('employeeIdCol'), t('employeeNameCol'), t('printCol_group'), t('printCol_shift'), t('startTime'), t('endTime'), t('printCol_in'), t('printCol_inStatus'), t('printCol_out'), t('printCol_outStatus')]
+        : ['No', t('employeeIdCol'), t('employeeNameCol'), t('printCol_group'), t('printCol_shift'), t('startTime'), t('endTime'), t('printCol_in'), t('printCol_inStatus'), t('printCol_out'), t('printCol_outStatus')];
 
     const rows = filtered.map((r, i) => {
         const base = [
@@ -3279,10 +3286,10 @@ const exportAttendanceCsv = () => {
     });
 
     const rangeLabel = isRange 
-        ? `${state.dailyAttendance.startDate} to ${state.dailyAttendance.endDate}`
+        ? `${state.dailyAttendance.startDate} ${t('rangeTo')} ${state.dailyAttendance.endDate}`
         : (state.dailyAttendance.date || '');
 
-    const titleRow = [`${state.organizationName || 'Attendance Report'} - ${rangeLabel}`];
+    const titleRow = [`${state.organizationName || t('dailyAttendance')} - ${rangeLabel}`];
     const csvContent = [titleRow, [], headers, ...rows]
         .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
@@ -3303,13 +3310,13 @@ const exportAttendanceCsv = () => {
 const exportAttendanceExcel = () => {
     const filtered = getFilteredAttendance();
     if (filtered.length === 0) {
-        setState({ errorMessage: 'No attendance data to export.' });
+        setState({ errorMessage: t('noDataToExport') });
         return;
     }
 
     const isRange = !!(state.dailyAttendance && state.dailyAttendance.isRange);
     const rangeLabel = isRange 
-        ? `${state.dailyAttendance.startDate} to ${state.dailyAttendance.endDate}`
+        ? `${state.dailyAttendance.startDate} ${t('rangeTo')} ${state.dailyAttendance.endDate}`
         : (state.dailyAttendance.date || '');
     
     let filename;
@@ -3323,22 +3330,22 @@ const exportAttendanceExcel = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
         <head><meta charset="UTF-8"><style>table { border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #f2f2f2; font-weight: bold; }</style></head>
         <body>
-            <h2>${state.organizationName || 'Attendance Report'} - ${rangeLabel}</h2>
+            <h2>${state.organizationName || t('dailyAttendance')} - ${rangeLabel}</h2>
             <table>
                 <thead>
                     <tr>
                         <th>No</th>
-                        ${isRange ? '<th>Date</th>' : ''}
-                        <th>Employee ID</th>
-                        <th>Employee Name</th>
-                        <th>Group</th>
-                        <th>Shift</th>
-                        <th>Shift Start</th>
-                        <th>Shift End</th>
-                        <th>Check In</th>
-                        <th>In Status</th>
-                        <th>Check Out</th>
-                        <th>Out Status</th>
+                        ${isRange ? `<th>${t('printCol_date')}</th>` : ''}
+                        <th>${t('employeeIdCol')}</th>
+                        <th>${t('employeeNameCol')}</th>
+                        <th>${t('printCol_group')}</th>
+                        <th>${t('printCol_shift')}</th>
+                        <th>${t('startTime')}</th>
+                        <th>${t('endTime')}</th>
+                        <th>${t('printCol_in')}</th>
+                        <th>${t('printCol_inStatus')}</th>
+                        <th>${t('printCol_out')}</th>
+                        <th>${t('printCol_outStatus')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3381,18 +3388,18 @@ const exportAttendanceExcel = () => {
 const printAttendance = () => {
     const filtered = getFilteredAttendance();
     if (filtered.length === 0) {
-        setState({ errorMessage: 'No attendance data to print.' });
+        setState({ errorMessage: t('printNoData') });
         return;
     }
 
     const isRange = !!(state.dailyAttendance && state.dailyAttendance.isRange);
     const rangeLabel = isRange 
-        ? `${state.dailyAttendance.startDate} to ${state.dailyAttendance.endDate}`
+        ? `${state.dailyAttendance.startDate} ${t('rangeTo')} ${state.dailyAttendance.endDate}`
         : (state.dailyAttendance.date || '');
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        setState({ errorMessage: 'Pop-up blocked. Please allow pop-ups to print.' });
+        setState({ errorMessage: t('popupBlocked') });
         return;
     }
 
@@ -3413,7 +3420,7 @@ const printAttendance = () => {
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-    <title>Daily Attendance Report</title>
+    <title>${t('printTitle_dailyAttendance')}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h2 { text-align: center; margin-bottom: 5px; }
@@ -3425,20 +3432,20 @@ const printAttendance = () => {
     </style>
 </head>
 <body>
-    <h2>${state.organizationName || 'Daily Attendance Report'}</h2>
-    <p class="subtitle">Period: ${rangeLabel}</p>
+    <h2>${state.organizationName || t('printTitle_dailyAttendance')}</h2>
+    <p class="subtitle">${t('periodLabel')}: ${rangeLabel}</p>
     <table>
         <thead>
             <tr>
                 <th>#</th>
-                ${isRange ? '<th>Date</th>' : ''}
-                <th>Employee</th>
-                <th>Group</th>
-                <th>Shift</th>
-                <th>In</th>
-                <th>In Status</th>
-                <th>Out</th>
-                <th>Out Status</th>
+                ${isRange ? `<th>${t('printCol_date')}</th>` : ''}
+                <th>${t('printCol_employee')}</th>
+                <th>${t('printCol_group')}</th>
+                <th>${t('printCol_shift')}</th>
+                <th>${t('printCol_in')}</th>
+                <th>${t('printCol_inStatus')}</th>
+                <th>${t('printCol_out')}</th>
+                <th>${t('printCol_outStatus')}</th>
             </tr>
         </thead>
         <tbody>
@@ -3463,13 +3470,13 @@ const printLogs = () => {
     }
 
     if (logs.length === 0) {
-        setState({ errorMessage: 'No logs to print.' });
+        setState({ errorMessage: t('printNoLogs') });
         return;
     }
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        setState({ errorMessage: 'Pop-up blocked. Please allow pop-ups to print.' });
+        setState({ errorMessage: t('popupBlocked') });
         return;
     }
 
@@ -3484,7 +3491,7 @@ const printLogs = () => {
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-    <title>Activity Logs Report</title>
+    <title>${t('printTitle_activityLogs')}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h2 { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -3495,13 +3502,13 @@ const printLogs = () => {
     </style>
 </head>
 <body>
-    <h2>${state.organizationName || 'Activity Logs Report'}</h2>
+    <h2>${state.organizationName || t('printTitle_activityLogs')}</h2>
     <table>
         <thead>
             <tr>
-                <th>Timestamp</th>
-                <th>User ID</th>
-                <th>Action</th>
+                <th>${t('printCol_timestamp')}</th>
+                <th>${t('printCol_userId')}</th>
+                <th>${t('printCol_action')}</th>
             </tr>
         </thead>
         <tbody>
@@ -3539,7 +3546,7 @@ const generateAllQrCodes = async () => {
 const downloadQrCode = (employeeId, employeeName) => {
     const canvas = document.getElementById(`qr-canvas-${employeeId}`);
     if (!canvas) {
-        setState({ errorMessage: 'QR code not found. Please generate QR codes first.' });
+        setState({ errorMessage: t('printGenerateFirst') });
         return;
     }
 
@@ -3575,7 +3582,7 @@ const downloadQrCode = (employeeId, employeeName) => {
 const saveQrCodeToDb = async (employeeId, employeeName) => {
     const canvas = document.getElementById(`qr-canvas-${employeeId}`);
     if (!canvas) {
-        setState({ errorMessage: 'QR code not found. Please generate QR codes first.' });
+        setState({ errorMessage: t('printGenerateFirst') });
         return;
     }
 
@@ -3595,7 +3602,7 @@ const saveQrCodeToDb = async (employeeId, employeeName) => {
 
 const printAllQrCodes = () => {
     if (!state.qrGenerated) {
-        setState({ errorMessage: 'Please generate QR codes first.' });
+        setState({ errorMessage: t('printGenerateFirst') });
         return;
     }
 
@@ -3608,14 +3615,14 @@ const printAllQrCodes = () => {
     );
 
     if (filtered.length === 0) {
-        setState({ errorMessage: 'No employees to print.' });
+        setState({ errorMessage: t('printNoEmployees') });
         return;
     }
 
     // Build a print window with all QR codes
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        setState({ errorMessage: 'Pop-up blocked. Please allow pop-ups to print QR codes.' });
+        setState({ errorMessage: t('popupBlocked') });
         return;
     }
 
@@ -3629,7 +3636,7 @@ const printAllQrCodes = () => {
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-    <title>Employee QR Codes</title>
+    <title>${t('printTitle_qrCodes')}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 16px; }
         .grid { display: flex; flex-wrap: wrap; gap: 16px; }
@@ -3641,7 +3648,7 @@ const printAllQrCodes = () => {
     </style>
 </head>
 <body>
-    <h2 style="margin-bottom: 16px;">Employee QR Codes</h2>
+    <h2 style="margin-bottom: 16px;">${t('printTitle_qrCodes')}</h2>
     <div class="grid">
         ${cards.map(c => `
         <div class="card">
