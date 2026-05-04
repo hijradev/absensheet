@@ -1,5 +1,19 @@
 // Helper.gs
 
+/**
+ * Prevents spreadsheet formula injection by escaping values that start
+ * with formula trigger characters: = + - @ TAB CR
+ */
+function sanitizeForSheet(value) {
+  if (typeof value !== 'string') return value;
+  if (value === '') return value;
+  // Prefix with apostrophe to force plain text interpretation
+  if (/^[=+\-@\t\r]/.test(value)) {
+    return "'" + value;
+  }
+  return value;
+}
+
 // Execution-context cache for Spreadsheet objects to avoid redundant openById() calls
 // which are slow and can lead to 30s timeouts on complex requests.
 var _ssCache = {};
@@ -109,7 +123,10 @@ function appendSheetData(spreadsheetId, sheetName, rowData) {
     const ss = SpreadsheetApp.openById(spreadsheetId);
     let sheet = ss.getSheetByName(sheetName);
     if (!sheet) sheet = ss.insertSheet(sheetName);
-    sheet.appendRow(rowData);
+    
+    // Sanitize all row data to prevent formula injection
+    const safeRowData = rowData.map(sanitizeForSheet);
+    sheet.appendRow(safeRowData);
     return true;
   } catch (e) {
     console.error("Error appending to sheet:", e);
@@ -122,7 +139,10 @@ function updateSheetRow(spreadsheetId, sheetName, rowIndex, rowData) {
     const ss = SpreadsheetApp.openById(spreadsheetId);
     const sheet = ss.getSheetByName(sheetName);
     if (!sheet) return false;
-    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    
+    // Sanitize all row data
+    const safeRowData = rowData.map(sanitizeForSheet);
+    sheet.getRange(rowIndex, 1, 1, safeRowData.length).setValues([safeRowData]);
     return true;
   } catch (e) {
     console.error("Error updating sheet row:", e);

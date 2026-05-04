@@ -5,8 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Employee Attendance System — check in, check out, and manage attendance records.">
     <title>Employee Attendance</title>
+    <!-- Viewport fix for GAS iframe mode -->
+    <script>
+      (function() {
+        function setResponsiveClass() {
+          const width = window.innerWidth || document.documentElement.clientWidth;
+          const html = document.documentElement;
+          html.classList.remove('viewport-mobile', 'viewport-tablet', 'viewport-desktop');
+          if (width <= 600) {
+            html.classList.add('viewport-mobile');
+          } else if (width <= 991) {
+            html.classList.add('viewport-tablet');
+          } else {
+            html.classList.add('viewport-desktop');
+          }
+          document.documentElement.style.setProperty('--viewport-width', width + 'px');
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setResponsiveClass);
+        } else {
+          setResponsiveClass();
+        }
+        window.addEventListener('resize', setResponsiveClass);
+        setInterval(setResponsiveClass, 1000);
+      })();
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.0/dist/apexcharts.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Preload critical icons -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" as="style"/>
+    <!-- Lazy load Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" media="print" onload="this.media='all'"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
