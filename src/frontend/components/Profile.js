@@ -106,7 +106,6 @@ export class Profile {
         const avatarSrc = this.escHtml(p.photo_url || this.svgAvatar(96));
         const fallback = this.svgAvatar(96);
         const isAdmin = this.state.user?.role === 'Admin';
-        const pretitle = isAdmin ? this.escHtml(t('adminPanel')) : this.escHtml(t('dashboard'));
 
         const infoRows = [
             { label: t('profile.employeeId'), value: p.id },
@@ -136,7 +135,6 @@ export class Profile {
             <div class="container-xl">
                 <div class="row g-2 align-items-center">
                     <div class="col">
-                        <div class="page-pretitle">${pretitle}</div>
                         <h2 class="page-title">${this.escHtml(t('profile.myProfile'))}</h2>
                     </div>
                 </div>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Attendance Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html5-qrcode from CDN — standard camera QR scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        /* ── Config panel (shown when no backend URL is saved) ── */
+        .config-panel {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 16px;
+            padding: 1.75rem;
+            text-align: center;
+        }
+        .config-panel h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: #f1f5f9; }
+        .config-panel p  { font-size: 0.82rem; color: #94a3b8; margin-bottom: 1.25rem; line-height: 1.5; }
+        .config-panel input {
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #f1f5f9;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            outline: none;
+        }
+        .config-panel input:focus { border-color: #3b82f6; }
+        .config-panel .btn-primary {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .config-panel .btn-primary:hover { background: #2563eb; }
+        .config-panel .hint { font-size: 0.72rem; color: #475569; margin-top: 0.75rem; }
+
+        /* ── Clock ── */
+        .clock-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
+        .clock-date { font-size: 0.8rem; color: #64748b; text-align: center; margin-top: 0.15rem; }
+
+        /* ── Header ── */
+        .scanner-header { text-align: center; }
+        .scanner-header .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: rgba(59, 130, 246, 0.15);
+            margin-bottom: 0.65rem;
+        }
+        .scanner-header h1 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.2rem; }
+        .scanner-header p  { font-size: 0.82rem; color: #94a3b8; }
+
+        /* ── Location bar ── */
+        .location-bar {
+            display: none;
+            width: 100%;
+            padding: 0.55rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        .location-bar.acquiring { background: rgba(250,204,21,.12); color: #fbbf24; border: 1px solid rgba(250,204,21,.25); }
+        .location-bar.within    { background: rgba(34,197,94,.12);  color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+        .location-bar.outside   { background: rgba(239,68,68,.12);  color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+        .location-bar.error     { background: rgba(148,163,184,.12);color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
+
+        /* ── Scanner viewport ── */
+        .scanner-viewport {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1e293b;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.08);
+        }
+
+        /* Override html5-qrcode default styles */
+        #scanner-reader { width: 100% !important; border: none !important; }
+        #scanner-reader img[alt="Info icon"] { display: none !important; }
+        #scanner-reader video { border-radius: 14px !important; object-fit: cover !important; }
+        #scanner-reader__dashboard_section_swaplink,
+        #scanner-reader__header_message,
+        #scanner-reader > div:nth-child(1) { display: none !important; }
+        #scanner-reader__dashboard_section { background: #1e293b !important; padding: 0.5rem !important; }
+        #scanner-reader__dashboard_section_csr button,
+        #scanner-reader__dashboard_section_csr select {
+            background: #334155 !important; color: #e2e8f0 !important;
+            border: 1px solid #475569 !important; border-radius: 8px !important;
+            padding: 0.45rem 0.9rem !important; font-family: 'Inter', sans-serif !important;
+            font-size: 0.8rem !important; cursor: pointer !important;
+        }
+        #scanner-reader__dashboard_section_csr button:hover { background: #475569 !important; }
+
+        /* ── Result feedback ── */
+        .scan-result {
+            display: none;
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 14px;
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .scan-result.success    { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3); }
+        .scan-result.error      { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.3); }
+        .scan-result.processing { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); }
+
+        .scan-result .result-icon   { font-size: 2rem; margin-bottom: 0.5rem; }
+        .scan-result .result-action { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .scan-result .result-name   { font-size: 0.95rem; font-weight: 600; color: #cbd5e1; }
+        .scan-result .result-detail { font-size: 0.8rem; color: #94a3b8; margin-top: 0.3rem; }
+        .scan-result .result-error  { font-size: 0.9rem; font-weight: 600; color: #f87171; }
+
+        /* ── Spinner ── */
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(96,165,250,.3);
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.4rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Footer ── */
+        .scanner-hint { text-align: center; font-size: 0.75rem; color: #64748b; line-height: 1.5; }
+        .reset-link {
+            display: none;
+            text-align: center;
+            font-size: 0.72rem;
+            color: #475569;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 0.25rem;
+        }
+        .reset-link:hover { color: #94a3b8; }
+
+        @media (max-height: 700px) {
+            .scanner-container { gap: 0.75rem; }
+            .scanner-header h1 { font-size: 1.05rem; }
+            .clock-display { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanner-container" id="scanner-container">
+
+    <!-- Config panel — shown when no backend URL is configured -->
+    <div id="config-panel" class="config-panel" style="display: none;">
+        <h2>Configure Backend</h2>
+        <p>
+            Enter your Google Apps Script Web App URL.<br>
+            It will be saved locally on this device.
+        </p>
+        <input
+            type="url"
+            id="backend-url-input"
+            placeholder="https://script.google.com/macros/s/.../exec"
+            autocomplete="off"
+            spellcheck="false"
+        >
+        <button class="btn-primary" id="btn-save-url">Start Scanner</button>
+        <p class="hint">Deploy your GAS project as a Web App accessible by "Anyone".</p>
+    </div>
+
+    <!-- Main scanner UI — shown after URL is configured -->
+    <div id="scanner-ui" style="display: none; width: 100%; display: none; flex-direction: column; align-items: center; gap: 1.25rem;">
+
+        <!-- Clock -->
+        <div>
+            <div class="clock-display" id="clock">--:--:--</div>
+            <div class="clock-date"    id="clock-date"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="scanner-header">
+            <div class="brand-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" stroke-width="1.5" stroke="#60a5fa" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M4 7v-1a2 2 0 0 1 2 -2h2"/>
+                    <path d="M4 17v1a2 2 0 0 0 2 2h2"/>
+                    <path d="M16 4h2a2 2 0 0 1 2 2v1"/>
+                    <path d="M16 20h2a2 2 0 0 0 2 -2v-1"/>
+                    <path d="M5 12l14 0"/>
+                </svg>
+            </div>
+            <h1>QR Attendance Scanner</h1>
+            <p>Scan employee QR code to check in or out</p>
+        </div>
+
+        <!-- Location status bar -->
+        <div class="location-bar" id="location-bar"></div>
+
+        <!-- Scanner viewport -->
+        <div class="scanner-viewport">
+            <div id="scanner-reader"></div>
+        </div>
+
+        <!-- Scan result feedback -->
+        <div class="scan-result" id="scan-result"></div>
+
+        <!-- Footer -->
+        <div class="scanner-hint">
+            Point the camera at an employee QR code.<br>
+            The scanner will automatically detect and process it.
+        </div>
+
+        <span class="reset-link" id="reset-link">Change backend URL</span>
+
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── Storage key ──────────────────────────────────────────────────────────
+    var STORAGE_KEY = 'attendance_scanner_backend_url';
+
+    // ── State ────────────────────────────────────────────────────────────────
+    var backendUrl      = null;
+    var scannerInstance = null;
+    var isProcessing    = false;
+    var locationPayload = null;
+    var geofenceConfig  = null;
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    function boot() {
+        // Check if a backend URL was passed as a query param (e.g. from the main app)
+        var params = new URLSearchParams(window.location.search);
+        var urlParam = params.get('backend');
+        if (urlParam) {
+            try {
+                // Validate it looks like a URL before trusting it
+                var parsed = new URL(urlParam);
+                if (parsed.protocol === 'https:') {
+                    backendUrl = urlParam;
+                    localStorage.setItem(STORAGE_KEY, backendUrl);
+                }
+            } catch (e) { /* ignore invalid URL */ }
+        }
+
+        if (!backendUrl) {
+            backendUrl = localStorage.getItem(STORAGE_KEY);
+        }
+
+        if (backendUrl) {
+            showScannerUI();
+        } else {
+            showConfigPanel();
+        }
+    }
+
+    // ── Config panel ─────────────────────────────────────────────────────────
+    function showConfigPanel() {
+        document.getElementById('config-panel').style.display = 'block';
+        document.getElementById('scanner-ui').style.display   = 'none';
+
+        document.getElementById('btn-save-url').onclick = function () {
+            var val = (document.getElementById('backend-url-input').value || '').trim();
+            if (!val) {
+                alert('Please enter the Web App URL.');
+                return;
+            }
+            try {
+                var p = new URL(val);
+                if (p.protocol !== 'https:') throw new Error('Must be HTTPS');
+            } catch (e) {
+                alert('Please enter a valid HTTPS URL.');
+                return;
+            }
+            backendUrl = val;
+            localStorage.setItem(STORAGE_KEY, backendUrl);
+            showScannerUI();
+        };
+    }
+
+    function showScannerUI() {
+        document.getElementById('config-panel').style.display = 'none';
+        var ui = document.getElementById('scanner-ui');
+        ui.style.display = 'flex';
+
+        var resetLink = document.getElementById('reset-link');
+        if (resetLink) {
+            resetLink.style.display = 'block';
+            resetLink.onclick = function () {
+                if (confirm('Reset backend URL? The page will reload.')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
+            };
+        }
+
+        startClock();
+        initGeofenceAndScanner();
+    }
+
+    // ── Clock ─────────────────────────────────────────────────────────────────
+    function startClock() {
+        function tick() {
+            var now = new Date();
+            var hh  = pad(now.getHours());
+            var mm  = pad(now.getMinutes());
+            var ss  = pad(now.getSeconds());
+            var clockEl = document.getElementById('clock');
+            if (clockEl) clockEl.textContent = hh + ':' + mm + ':' + ss;
+
+            var days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var dateEl = document.getElementById('clock-date');
+            if (dateEl) dateEl.textContent =
+                days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    // ── Geofence + Scanner init ───────────────────────────────────────────────
+    function initGeofenceAndScanner() {
+        callBackend({ action: 'getGeofence' }, function (res) {
+            if (res && res.status === 'success' && res.data && res.data.enabled) {
+                geofenceConfig = res.data;
+                acquireLocation(geofenceConfig);
+            } else {
+                startScanner();
+            }
+        }, function (err) {
+            console.warn('Could not fetch geofence settings:', err);
+            // Non-fatal — proceed without geofencing
+            startScanner();
+        });
+    }
+
+    // ── Location ──────────────────────────────────────────────────────────────
+    function acquireLocation(cfg) {
+        var bar = document.getElementById('location-bar');
+        bar.style.display = 'block';
+        bar.className = 'location-bar acquiring';
+        bar.textContent = '📡 Acquiring location…';
+
+        if (!navigator.geolocation) {
+            bar.className = 'location-bar error';
+            bar.textContent = '⚠ Location services not supported by this browser';
+            startScanner();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                locationPayload = {
+                    latitude:  pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy:  pos.coords.accuracy
+                };
+
+                if (cfg && cfg.latitude != null && cfg.longitude != null && cfg.radius != null) {
+                    var d = haversine(cfg.latitude, cfg.longitude, pos.coords.latitude, pos.coords.longitude);
+                    if (d <= cfg.radius) {
+                        bar.className = 'location-bar within';
+                        bar.textContent = '✓ Within work zone (' + d + 'm)';
+                    } else {
+                        bar.className = 'location-bar outside';
+                        bar.textContent = '✗ Outside work zone (' + d + 'm away, max ' + cfg.radius + 'm)';
+                    }
+                } else {
+                    bar.className = 'location-bar within';
+                    bar.textContent = '✓ Location acquired';
+                }
+
+                startScanner();
+            },
+            function (err) {
+                bar.className = 'location-bar error';
+                var msgs = {
+                    1: '⚠ Location permission denied',
+                    2: '⚠ Unable to determine location',
+                    3: '⚠ Location request timed out'
+                };
+                bar.textContent = msgs[err.code] || '⚠ Location error';
+                // Still start scanner — backend will validate
+                startScanner();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+    }
+
+    function haversine(lat1, lng1, lat2, lng2) {
+        var R  = 6371000;
+        var p1 = lat1 * Math.PI / 180;
+        var p2 = lat2 * Math.PI / 180;
+        var dp = (lat2 - lat1) * Math.PI / 180;
+        var dl = (lng2 - lng1) * Math.PI / 180;
+        var a  = Math.sin(dp/2) * Math.sin(dp/2) +
+                 Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+        return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    // ── QR Scanner ────────────────────────────────────────────────────────────
+    function startScanner() {
+        if (scannerInstance) return;
+
+        scannerInstance = new Html5QrcodeScanner('scanner-reader', {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            rememberLastUsedCamera: true,
+            showTorchButtonIfSupported: true
+        }, /* verbose= */ false);
+
+        scannerInstance.render(onScanSuccess, function () { /* ignore scan errors */ });
+    }
+
+    function onScanSuccess(decodedText) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        // Pause scanner while processing
+        try { scannerInstance.pause(true); } catch (e) {}
+
+        showResult('processing', null, null, '<span class="spinner"></span> Processing…', null);
+
+        callBackend(
+            {
+                action:          'processQR',
+                employeeId:      decodedText,
+                locationPayload: locationPayload || null
+            },
+            function (res) {
+                if (res && res.status === 'success') {
+                    var d = res.data;
+                    var actionLabel = d.action === 'checkin' ? '✓ Checked In' : '✓ Checked Out';
+                    var statusColor = d.status === 'Tepat Waktu' ? '#4ade80' : '#fbbf24';
+                    showResult(
+                        'success',
+                        actionLabel,
+                        d.employeeName,
+                        escHtml(d.time) + '  ·  <span style="color:' + statusColor + '">' + escHtml(d.status) + '</span>',
+                        null
+                    );
+                } else {
+                    showResult('error', null, null, null, res ? res.message : 'Attendance failed.');
+                }
+                resumeAfterDelay();
+            },
+            function () {
+                showResult('error', null, null, null, 'Connection error. Please try again.');
+                resumeAfterDelay();
+            }
+        );
+    }
+
+    // ── Result display ────────────────────────────────────────────────────────
+    function showResult(type, action, name, detail, errorMsg) {
+        var el = document.getElementById('scan-result');
+        el.style.display = 'block';
+        el.className = 'scan-result ' + type;
+
+        var html = '';
+        if (type === 'success') {
+            html = '<div class="result-icon">✅</div>' +
+                   '<div class="result-action">' + escHtml(action) + '</div>' +
+                   '<div class="result-name">'   + escHtml(name)   + '</div>' +
+                   '<div class="result-detail">' + detail          + '</div>';
+        } else if (type === 'error') {
+            html = '<div class="result-icon">⚠️</div>' +
+                   '<div class="result-error">'  + escHtml(errorMsg) + '</div>';
+        } else {
+            // processing
+            html = '<div class="result-detail">' + detail + '</div>';
+        }
+        el.innerHTML = html;
+    }
+
+    function resumeAfterDelay() {
+        setTimeout(function () {
+            var el = document.getElementById('scan-result');
+            if (el) el.style.display = 'none';
+            isProcessing = false;
+            try { scannerInstance.resume(); } catch (e) {}
+        }, 4000);
+    }
+
+    // ── Backend communication ─────────────────────────────────────────────────
+    // Calls the GAS doPost endpoint via fetch.
+    // GAS Web Apps deployed as "Anyone" support CORS for POST requests.
+    function callBackend(payload, onSuccess, onError) {
+        if (!backendUrl) {
+            if (onError) onError('No backend URL configured.');
+            return;
+        }
+
+        fetch(backendUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'text/plain' }, // avoid CORS preflight
+            body:    JSON.stringify(payload),
+            redirect: 'follow'
+        })
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
+        .then(function (data) {
+            if (onSuccess) onSuccess(data);
+        })
+        .catch(function (err) {
+            console.error('Backend call failed:', err);
+            if (onError) onError(err.message || 'Network error');
+        });
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    function escHtml(str) {
+        if (!str) return '';
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(str)));
+        return d.innerHTML;
+    }
+
+    // ── Start ─────────────────────────────────────────────────────────────────
+    boot();
+
+})();
+</script>
+
+</body>
+</html>

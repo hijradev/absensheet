@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Employee Attendance System — check in, check out, and manage attendance records.">
+    <!--
+      GAS Backend URL — replace the content value with your deployed Google Apps Script Web App URL.
+      This tells the frontend where to send QR scan requests when running outside GAS (Vercel/GitHub).
+      Format: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+    -->
+    <meta name="gas-backend-url" content="REPLACE_WITH_YOUR_GAS_WEB_APP_URL">
     <title>Employee Attendance</title>
     <!-- Viewport fix for GAS iframe mode -->
     <script>
