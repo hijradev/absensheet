@@ -144,7 +144,6 @@ export class Settings {
                     <div class="container-xl">
                         <div class="row g-2 align-items-center">
                             <div class="col">
-                                <div class="page-pretitle placeholder-glow"><span class="placeholder col-2 rounded"></span></div>
                                 <h2 class="page-title placeholder-glow"><span class="placeholder col-3 rounded"></span></h2>
                             </div>
                         </div>
@@ -185,7 +184,6 @@ export class Settings {
                 <div class="container-xl">
                     <div class="row g-2 align-items-center">
                         <div class="col">
-                            <div class="page-pretitle">${t('adminPanel.adminPanel')}</div>
                             <h2 class="page-title">${t('settings')}</h2>
                         </div>
                     </div>

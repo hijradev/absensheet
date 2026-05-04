@@ -326,35 +326,85 @@
     var scannerInstance = null;
     var isProcessing = false;
 
+    // --- Backend URL resolution ---
+    // Priority:
+    //   1. window.__GAS_BACKEND_URL__ injected by doGet() in Code.gs
+    //   2. ?backend= query param (passed by openScannerPage() in app.js)
+    //   3. null → use google.script.run (classic GAS path)
+    var backendUrl = null;
+    if (typeof window.__GAS_BACKEND_URL__ !== 'undefined') {
+        backendUrl = window.__GAS_BACKEND_URL__;
+    } else {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var paramUrl = params.get('backend');
+            if (paramUrl) {
+                var parsed = new URL(paramUrl);
+                if (parsed.protocol === 'https:') backendUrl = paramUrl;
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    // --- Unified backend call ---
+    // Uses fetch() when backendUrl is available, otherwise falls back to
+    // google.script.run (only works when served directly from GAS).
+    function callBackend(action, payload, onSuccess, onError) {
+        if (backendUrl) {
+            // HTTP fetch path — works from any origin
+            payload.action = action;
+            fetch(backendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // avoid CORS preflight
+                body: JSON.stringify(payload),
+                redirect: 'follow'
+            })
+            .then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(onSuccess)
+            .catch(function(err) {
+                console.error('Backend fetch error:', err);
+                if (onError) onError(err.message || 'Network error');
+            });
+        } else if (typeof google !== 'undefined' && google.script && google.script.run) {
+            // google.script.run path — only available inside GAS
+            if (action === 'getGeofence') {
+                google.script.run
+                    .withSuccessHandler(onSuccess)
+                    .withFailureHandler(onError || function(){})
+                    .getGeofenceSettingsPublic();
+            } else if (action === 'processQR') {
+                google.script.run
+                    .withSuccessHandler(onSuccess)
+                    .withFailureHandler(function(err) {
+                        if (onError) onError(err);
+                        else showResult('error', '', '', '', 'Connection error. Please try again.');
+                        resumeAfterDelay();
+                    })
+                    .processAttendanceByQR(payload.employeeId, payload.locationPayload || undefined);
+            }
+        } else {
+            console.error('No backend available — set window.__GAS_BACKEND_URL__ or use ?backend= param.');
+            if (onError) onError('No backend configured.');
+        }
+    }
+
     // --- Geofence check ---
     function checkGeofence() {
-        if (typeof google === 'undefined' || !google.script || !google.script.run) {
-            console.error('GAS environment not detected.');
-            var bar = document.getElementById('location-bar');
-            bar.style.display = 'block';
-            bar.className = 'location-bar error';
-            bar.textContent = '⚠ System Error: Please open from the main application button.';
-            // Fallback for dev: still start scanner but it won't be able to save
-            startScanner();
-            return;
-        }
-
-        google.script.run
-            .withSuccessHandler(function(res) {
-                if (res && res.status === 'success' && res.data && res.data.enabled) {
-                    geofenceEnabled = true;
-                    acquireLocation(res.data);
-                } else {
-                    geofenceEnabled = false;
-                    startScanner();
-                }
-            })
-            .withFailureHandler(function(err) {
-                console.error('Failed to get geofence settings:', err);
+        callBackend('getGeofence', {}, function(res) {
+            if (res && res.status === 'success' && res.data && res.data.enabled) {
+                geofenceEnabled = true;
+                acquireLocation(res.data);
+            } else {
                 geofenceEnabled = false;
                 startScanner();
-            })
-            .getGeofenceSettingsPublic();
+            }
+        }, function(err) {
+            console.warn('Failed to get geofence settings:', err);
+            geofenceEnabled = false;
+            startScanner();
+        });
     }
 
     function acquireLocation(geoConfig) {
@@ -366,7 +416,6 @@
         if (!navigator.geolocation) {
             bar.className = 'location-bar error';
             bar.textContent = '⚠ Location services not supported by this browser';
-            // Still start scanner — backend will validate
             startScanner();
             return;
         }
@@ -379,7 +428,6 @@
                     accuracy: pos.coords.accuracy
                 };
 
-                // Client-side distance check (Haversine)
                 if (geoConfig.latitude != null && geoConfig.longitude != null && geoConfig.radius != null) {
                     var d = haversine(geoConfig.latitude, geoConfig.longitude, pos.coords.latitude, pos.coords.longitude);
                     if (d <= geoConfig.radius) {
@@ -404,7 +452,6 @@
                     3: '⚠ Location request timed out'
                 };
                 bar.textContent = msgs[err.code] || '⚠ Location error';
-                // Still start scanner — backend will decide
                 startScanner();
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -440,32 +487,27 @@
         if (isProcessing) return;
         isProcessing = true;
 
-        // Pause scanner
-        if (scannerInstance) {
-            try { scannerInstance.pause(true); } catch(e) {}
-        }
+        try { scannerInstance.pause(true); } catch(e) {}
 
-        // Show processing
         showResult('processing', '', '', '<span class="spinner"></span> Processing…', '');
 
-        // Call backend
-        google.script.run
-            .withSuccessHandler(function(res) {
-                if (res && res.status === 'success') {
-                    var d = res.data;
-                    var action = d.action === 'checkin' ? '✓ Checked In' : '✓ Checked Out';
-                    var statusClass = d.status === 'Tepat Waktu' ? '#4ade80' : '#fbbf24';
-                    showResult('success', action, d.employeeName, d.time + '  ·  <span style="color:' + statusClass + '">' + escHtml(d.status) + '</span>', '');
-                } else {
-                    showResult('error', '', '', '', res ? res.message : 'Attendance failed.');
-                }
-                resumeAfterDelay();
-            })
-            .withFailureHandler(function(err) {
-                showResult('error', '', '', '', 'Connection error. Please try again.');
-                resumeAfterDelay();
-            })
-            .processAttendanceByQR(decodedText, locationPayload || undefined);
+        callBackend('processQR', {
+            employeeId: decodedText,
+            locationPayload: locationPayload || null
+        }, function(res) {
+            if (res && res.status === 'success') {
+                var d = res.data;
+                var action = d.action === 'checkin' ? '✓ Checked In' : '✓ Checked Out';
+                var statusClass = d.status === 'Tepat Waktu' ? '#4ade80' : '#fbbf24';
+                showResult('success', action, d.employeeName, d.time + '  ·  <span style="color:' + statusClass + '">' + escHtml(d.status) + '</span>', '');
+            } else {
+                showResult('error', '', '', '', res ? res.message : 'Attendance failed.');
+            }
+            resumeAfterDelay();
+        }, function() {
+            showResult('error', '', '', '', 'Connection error. Please try again.');
+            resumeAfterDelay();
+        });
     }
 
     function showResult(type, action, name, detail, errorMsg) {
@@ -483,7 +525,6 @@
             html = '<div class="result-icon">⚠️</div>' +
                    '<div class="result-error-msg">' + escHtml(errorMsg) + '</div>';
         } else {
-            // processing
             html = '<div class="result-detail">' + detail + '</div>';
         }
         el.innerHTML = html;
@@ -493,9 +534,7 @@
         setTimeout(function() {
             document.getElementById('scan-result').style.display = 'none';
             isProcessing = false;
-            if (scannerInstance) {
-                try { scannerInstance.resume(); } catch(e) {}
-            }
+            try { scannerInstance.resume(); } catch(e) {}
         }, 4000);
     }
 

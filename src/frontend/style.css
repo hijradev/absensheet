@@ -168,7 +168,8 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 700;
+    text-transform: none;
 }
 
 .admin-sidebar-item:hover {
@@ -179,7 +180,7 @@ body {
 .admin-sidebar-item.active {
     background: #eff6ff;
     color: #2563eb;
-    font-weight: 600;
+    font-weight: 700;
     border-right: 3px solid #2563eb;
 }
 
@@ -187,59 +188,30 @@ body {
 .admin-sidebar-group-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 1.25rem 0.6rem 1.5rem;
+    padding: 0.6rem 1.5rem;
     margin-top: 0.25rem;
-    cursor: pointer;
     user-select: none;
-    transition: background 0.15s;
-    border-radius: 0;
-}
-
-.admin-sidebar-group-header:hover {
-    background: #f1f5f9;
-}
-
-.admin-sidebar-group-header.open .admin-sidebar-chevron {
-    transform: rotate(180deg);
 }
 
 .admin-sidebar-group-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.72rem;
+    font-size: 0.875rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    text-transform: none;
+    letter-spacing: normal;
     color: #94a3b8;
-}
-
-.admin-sidebar-group-label .icon {
-    color: #94a3b8;
-    flex-shrink: 0;
-}
-
-.admin-sidebar-chevron {
-    color: #cbd5e1;
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
 }
 
 /* Submenu container */
 .admin-sidebar-submenu {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.25s ease;
+    display: block;
 }
 
-.admin-sidebar-submenu.open {
-    max-height: 300px;
-}
-
-/* Submenu items — slightly indented */
+/* Submenu items */
 .admin-sidebar-subitem {
-    padding-left: 2.75rem;
+    padding-left: 1.5rem;
 }
 
 .admin-sidebar-subitem .icon {

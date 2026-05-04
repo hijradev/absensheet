@@ -38,10 +38,21 @@ function doGet(e) {
   // This page runs as a top-level document (not inside the GAS iframe),
   // which allows getUserMedia() / camera access for QR code scanning.
   if (e && e.parameter && e.parameter.page === 'scanner') {
-    return HtmlService.createHtmlOutputFromFile('scanner_partial')
+    // Pass the Web App base URL to the scanner so it can call doPost
+    // without requiring manual configuration.
+    var scriptUrl = ScriptApp.getService().getUrl();
+    var output = HtmlService.createHtmlOutputFromFile('scanner_partial')
       .setTitle('QR Attendance Scanner')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    // Inject the backend URL as a global JS variable so the scanner page
+    // can use it without needing the config panel.
+    var injected = output.getContent().replace(
+      '</head>',
+      '<script>window.__GAS_BACKEND_URL__ = ' + JSON.stringify(scriptUrl) + ';</script></head>'
+    );
+    output.setContent(injected);
+    return output;
   }
 
   // We use evaluate() to allow templating if needed, 

@@ -2692,13 +2692,25 @@ const doCheckOut = async () => {
 };
 
 // --- Open Standalone Scanner Page ---
-// Opens the QR scanner page in a new tab where camera access works
-// (GAS serves the main app in an iframe that blocks getUserMedia)
+// Opens the QR scanner page in a new tab.
+//
+// When running inside GAS (google.script.run is available):
+//   - Fetches the deployed Web App URL via getScriptUrl()
+//   - Opens <webAppUrl>?page=scanner  (served by doGet in Code.gs)
+//   - Also passes the backend URL as a query param so the scanner can call
+//     doPost without requiring manual configuration.
+//
+// When running outside GAS (Vercel / GitHub Pages):
+//   - Opens /scanner.html (the standalone file in the repo root)
+//   - Passes the current origin as the backend param so the scanner knows
+//     where to POST attendance data.
+//   - If a GAS_BACKEND_URL meta tag is present in the page, that URL is used
+//     instead (allows the Vercel deployment to point at the GAS backend).
 
 const openScannerPage = () => {
     const btn = document.getElementById('btn-open-scanner-tab');
     const originalContent = btn ? btn.innerHTML : '';
-    
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Loading...`;
@@ -2712,12 +2724,13 @@ const openScannerPage = () => {
     };
 
     if (typeof google !== 'undefined' && google.script && google.script.run) {
+        // ── GAS environment ──────────────────────────────────────────────────
         google.script.run
             .withSuccessHandler((url) => {
                 resetBtn();
                 if (url) {
-                    const baseUrl = url.split('?')[0].split('#')[0];
-                    const scannerUrl = baseUrl + '?page=scanner';
+                    const baseUrl    = url.split('?')[0].split('#')[0];
+                    const scannerUrl = baseUrl + '?page=scanner&backend=' + encodeURIComponent(baseUrl);
                     window.open(scannerUrl, '_blank');
                 }
             })
@@ -2727,9 +2740,23 @@ const openScannerPage = () => {
             })
             .getScriptUrl();
     } else {
-        // Fallback for dev/mock mode
+        // ── Non-GAS environment (Vercel / GitHub Pages / local dev) ─────────
         resetBtn();
-        window.open('?page=scanner', '_blank');
+
+        // Resolve the GAS backend URL:
+        //   1. <meta name="gas-backend-url" content="https://..."> in index.html
+        //   2. localStorage key 'attendance_scanner_backend_url' (set by scanner itself)
+        //   3. Fall back to same origin (useful for local dev with a proxy)
+        let backendUrl = '';
+        const metaTag = document.querySelector('meta[name="gas-backend-url"]');
+        if (metaTag && metaTag.content) {
+            backendUrl = metaTag.content;
+        } else {
+            backendUrl = localStorage.getItem('attendance_scanner_backend_url') || window.location.origin;
+        }
+
+        const scannerUrl = '/scanner.html?backend=' + encodeURIComponent(backendUrl);
+        window.open(scannerUrl, '_blank');
     }
 };
 
@@ -3774,18 +3801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Admin Sidebar — group header toggle
-        const groupHeader = target.closest('.admin-sidebar-group-header');
-        if (groupHeader) {
-            const groupId = groupHeader.dataset.group;
-            const submenu = document.getElementById(`submenu-${groupId}`);
-            if (submenu) {
-                const isOpen = submenu.classList.contains('open');
-                submenu.classList.toggle('open', !isOpen);
-                groupHeader.classList.toggle('open', !isOpen);
-            }
-            return;
-        }
+        // Admin Sidebar — group header toggle logic removed as all menus are static now
 
         // Admin Sidebar
         const sidebarItem = target.closest('.admin-sidebar-item');
