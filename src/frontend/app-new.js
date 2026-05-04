@@ -234,14 +234,29 @@ function renderEmployeeView() {
     const historyTable = document.getElementById('employee-history-table');
     if (!historyTable) return;
 
+    const HISTORY_PAGE_SIZE = 10;
+    const historyPagination = document.getElementById('employee-history-pagination');
+    const historyCount = document.getElementById('employee-history-count');
+
     if (!state.dataLoaded) {
         historyTable.innerHTML = [1, 2, 3].map(() =>
             `<tr><td colspan="5"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
         ).join('');
+        if (historyPagination) historyPagination.innerHTML = '';
+        if (historyCount) historyCount.textContent = '';
     } else if (state.attendanceHistory.length === 0) {
         historyTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No attendance records found.</td></tr>';
+        if (historyPagination) historyPagination.innerHTML = '';
+        if (historyCount) historyCount.textContent = '';
     } else {
-        historyTable.innerHTML = state.attendanceHistory.map(log => `
+        const totalRecords = state.attendanceHistory.length;
+        const totalPages = Math.ceil(totalRecords / HISTORY_PAGE_SIZE);
+        const currentPage = Math.min(Math.max(state.historyPage || 1, 1), totalPages);
+        const start = (currentPage - 1) * HISTORY_PAGE_SIZE;
+        const end = Math.min(start + HISTORY_PAGE_SIZE, totalRecords);
+        const pageData = state.attendanceHistory.slice(start, end);
+
+        historyTable.innerHTML = pageData.map(log => `
             <tr>
                 <td>${escHtml(log.date)}</td>
                 <td>${escHtml(log.checkInTime)}</td>
@@ -249,6 +264,57 @@ function renderEmployeeView() {
                 <td>${escHtml(log.checkOutTime)}</td>
                 <td><span class="badge text-white ${log.checkOutStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-warning'}">${escHtml(log.checkOutStatus)}</span></td>
             </tr>`).join('');
+
+        if (historyCount) {
+            historyCount.textContent = `${start + 1}–${end} / ${totalRecords}`;
+        }
+
+        if (historyPagination) {
+            if (totalPages <= 1) {
+                historyPagination.innerHTML = '';
+            } else {
+                const maxVisible = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+                let html = '';
+                html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
+                    </a>
+                </li>`;
+
+                if (startPage > 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+                    if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                }
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6"/></svg>
+                    </a>
+                </li>`;
+
+                historyPagination.innerHTML = html;
+                historyPagination.querySelectorAll('a.page-link').forEach(link => {
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        const page = parseInt(link.dataset.page);
+                        if (page && page !== currentPage && page >= 1 && page <= totalPages) {
+                            setState({ historyPage: page });
+                        }
+                    });
+                });
+            }
+        }
     }
 }
 

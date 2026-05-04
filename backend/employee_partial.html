@@ -43,7 +43,7 @@
                                 </div>
                                 <div class="card-body text-center">
                                     <div class="mb-3">
-                                        <p class="text-muted">Welcome, <strong id="employee-name"></strong></p>
+                                        <p class="text-muted"><span data-i18n="employeeDashboard.welcome">Welcome</span>, <strong id="employee-name"></strong></p>
                                     </div>
                                     <!-- Location Status Badge (shown only when geofencing is enabled) -->
                                     <div id="location-status-container" style="display: none;" class="mb-3">
@@ -97,6 +97,10 @@
                                             <!-- To be populated by JS -->
                                         </tbody>
                                     </table>
+                                </div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <p class="m-0 text-muted" id="employee-history-count"></p>
+                                    <ul class="pagination m-0" id="employee-history-pagination"></ul>
                                 </div>
                             </div>
                         </div>
