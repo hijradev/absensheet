@@ -56,6 +56,7 @@ const state = {
 
     // Employee
     attendanceHistory: [],
+    historyPage: 1,
 
     // Admin — split into dashboard data and management data
     adminView: 'dashboard',
@@ -574,14 +575,29 @@ function renderEmployeeView() {
     const historyTable = document.getElementById('employee-history-table');
     if (!historyTable) return;
 
+    const HISTORY_PAGE_SIZE = 10;
+    const historyPagination = document.getElementById('employee-history-pagination');
+    const historyCount = document.getElementById('employee-history-count');
+
     if (!state.dataLoaded) {
         historyTable.innerHTML = [1, 2, 3].map(() =>
             `<tr><td colspan="5"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
         ).join('');
+        if (historyPagination) historyPagination.innerHTML = '';
+        if (historyCount) historyCount.textContent = '';
     } else if (state.attendanceHistory.length === 0) {
         historyTable.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">${t('reports.noAttendanceRecordsFound')}</td></tr>`;
+        if (historyPagination) historyPagination.innerHTML = '';
+        if (historyCount) historyCount.textContent = '';
     } else {
-        historyTable.innerHTML = state.attendanceHistory.map(log => `
+        const totalRecords = state.attendanceHistory.length;
+        const totalPages = Math.ceil(totalRecords / HISTORY_PAGE_SIZE);
+        const currentPage = Math.min(Math.max(state.historyPage || 1, 1), totalPages);
+        const start = (currentPage - 1) * HISTORY_PAGE_SIZE;
+        const end = Math.min(start + HISTORY_PAGE_SIZE, totalRecords);
+        const pageData = state.attendanceHistory.slice(start, end);
+
+        historyTable.innerHTML = pageData.map(log => `
             <tr>
                 <td>${escHtml(log.date)}</td>
                 <td>${escHtml(log.checkInTime)}</td>
@@ -589,6 +605,57 @@ function renderEmployeeView() {
                 <td>${escHtml(log.checkOutTime)}</td>
                 <td><span class="badge text-white ${log.checkOutStatus === 'Tepat Waktu' ? 'bg-success' : 'bg-warning'}">${t(log.checkOutStatus === 'Tepat Waktu' ? 'onTime' : 'absent')}</span></td>
             </tr>`).join('');
+
+        if (historyCount) {
+            historyCount.textContent = `${start + 1}–${end} / ${totalRecords}`;
+        }
+
+        if (historyPagination) {
+            if (totalPages <= 1) {
+                historyPagination.innerHTML = '';
+            } else {
+                const maxVisible = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+                let html = '';
+                html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
+                    </a>
+                </li>`;
+
+                if (startPage > 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+                    if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                }
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6"/></svg>
+                    </a>
+                </li>`;
+
+                historyPagination.innerHTML = html;
+                historyPagination.querySelectorAll('a.page-link').forEach(link => {
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        const page = parseInt(link.dataset.page);
+                        if (page && page !== currentPage && page >= 1 && page <= totalPages) {
+                            setState({ historyPage: page });
+                        }
+                    });
+                });
+            }
+        }
     }
 }
 
@@ -919,7 +986,7 @@ function renderDashboardCharts() {
     const pieOptions = {
         series: pieData,
         chart: { type: 'donut', height: 350 },
-        labels: ['On Time', 'Late', 'Absent', 'Not Present'],
+        labels: [t('onTime'), t('late'), t('absent'), t('notPresent')],
         colors: ['#2fb344', '#f76707', '#d63939', '#6c7a9c'],
         legend: { position: 'bottom' },
         plotOptions: {
@@ -930,7 +997,7 @@ function renderDashboardCharts() {
                         show: true,
                         total: {
                             show: true,
-                            label: 'Total This Week',
+                            label: t('totalThisWeek'),
                             formatter: () => pieData.reduce((a, b) => a + b, 0)
                         }
                     }
@@ -942,7 +1009,7 @@ function renderDashboardCharts() {
             { breakpoint: 480, options: { chart: { height: 240, width: '100%' }, legend: { position: 'bottom', fontSize: '11px' } } }
         ],
         noData: {
-            text: 'No data available',
+            text: t('noDataAvailable'),
             align: 'center',
             verticalAlign: 'middle'
         }
@@ -952,10 +1019,10 @@ function renderDashboardCharts() {
     const trend = (state.adminMonthlyTrend || []);
     const barOptions = {
         series: [
-            { name: 'On Time', data: trend.map(m => m.total > 0 ? Math.round((m.onTime / m.total) * 100) : 0) },
-            { name: 'Late', data: trend.map(m => m.total > 0 ? Math.round((m.late / m.total) * 100) : 0) },
-            { name: 'Absent', data: trend.map(m => m.total > 0 ? Math.round((m.absent / m.total) * 100) : 0) },
-            { name: 'Not Present', data: trend.map(m => m.total > 0 ? Math.round((m.notPresent / m.total) * 100) : 0) }
+            { name: t('onTime'), data: trend.map(m => m.total > 0 ? Math.round((m.onTime / m.total) * 100) : 0) },
+            { name: t('late'), data: trend.map(m => m.total > 0 ? Math.round((m.late / m.total) * 100) : 0) },
+            { name: t('absent'), data: trend.map(m => m.total > 0 ? Math.round((m.absent / m.total) * 100) : 0) },
+            { name: t('notPresent'), data: trend.map(m => m.total > 0 ? Math.round((m.notPresent / m.total) * 100) : 0) }
         ],
         chart: { type: 'bar', height: 350, stacked: true },
         colors: ['#2fb344', '#f76707', '#d63939', '#6c7a9c'],
@@ -990,9 +1057,9 @@ function renderDashboardCharts() {
                 const notPresentPct = m.total > 0 ? Math.round((m.notPresent / m.total) * 100) : 0;
                 return `<div class="apexcharts-tooltip-box p-2">
                     <strong>${m.label}</strong><br/>
-                    On Time: ${onTimePct}% (${m.onTime}) &nbsp; Late: ${latePct}% (${m.late})<br/>
-                    Absent: ${absentPct}% (${m.absent}) &nbsp; Not Present: ${notPresentPct}% (${m.notPresent})<br/>
-                    <strong>Attendance Rate: ${m.percentage}%</strong>
+                    ${t('onTime')}: ${onTimePct}% (${m.onTime}) &nbsp; ${t('late')}: ${latePct}% (${m.late})<br/>
+                    ${t('absent')}: ${absentPct}% (${m.absent}) &nbsp; ${t('notPresent')}: ${notPresentPct}% (${m.notPresent})<br/>
+                    <strong>${t('attendanceRate')}: ${m.percentage}%</strong>
                 </div>`;
             }
         },
@@ -1001,7 +1068,7 @@ function renderDashboardCharts() {
             { breakpoint: 480, options: { chart: { height: 240 }, xaxis: { labels: { rotate: -45, style: { fontSize: '9px' } } }, dataLabels: { enabled: false } } }
         ],
         noData: {
-            text: 'No data available',
+            text: t('noDataAvailable'),
             align: 'center',
             verticalAlign: 'middle'
         }
@@ -2539,6 +2606,7 @@ const loadEmployeeData = async (showPageSpinner = true) => {
 
         if (histRes && histRes.status === 'success') {
             updates.attendanceHistory = histRes.data;
+            updates.historyPage = 1;
             updates.dataLoaded = true;
             updates.dataError = '';
         } else {

@@ -1,4 +1,6 @@
 // AdminDashboard.js - Dashboard component
+import { t } from '../i18n/i18n.js';
+
 export class AdminDashboard {
     constructor(state, setState, callGas) {
         this.state = state;
@@ -108,7 +110,7 @@ export class AdminDashboard {
         const pieOptions = {
             series: pieData,
             chart: { type: 'donut', height: 350 },
-            labels: ['On Time', 'Late', 'Left Early'],
+            labels: [t('onTime'), t('late'), t('leftEarlyChart')],
             colors: ['#2fb344', '#f76707', '#d63939'],
             legend: { position: 'bottom' },
             plotOptions: {
@@ -119,7 +121,7 @@ export class AdminDashboard {
                             show: true,
                             total: {
                                 show: true,
-                                label: 'Total This Week',
+                                label: t('totalThisWeek'),
                                 formatter: () => pieData.reduce((a, b) => a + b, 0)
                             }
                         }
@@ -178,9 +180,9 @@ export class AdminDashboard {
                     if (!m) return '';
                     return `<div class="apexcharts-tooltip-box p-2">
                         <strong>${m.label}</strong><br/>
-                        On Time: ${m.tepatWaktu} &nbsp; Late: ${m.terlambat}<br/>
-                        Absent: ${m.pulangAwal}<br/>
-                        <strong>Attendance Rate: ${m.percentage}%</strong>
+                        ${t('onTime')}: ${m.tepatWaktu} &nbsp; ${t('late')}: ${m.terlambat}<br/>
+                        ${t('absent')}: ${m.pulangAwal}<br/>
+                        <strong>${t('attendanceRate')}: ${m.percentage}%</strong>
                     </div>`;
                 }
             },
