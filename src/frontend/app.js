@@ -267,17 +267,24 @@ const loadView = async (viewName) => {
             // render creates a fresh Leaflet instance on the new #employee-location-map node.
             destroyEmployeeMap();
             contentDiv.innerHTML = html;
-            
-            // Re-execute scripts in injected HTML if any (GAS include might contain them)
+
+            // Execute scripts in injected HTML
             const scripts = contentDiv.querySelectorAll('script');
             scripts.forEach(oldScript => {
                 const newScript = document.createElement('script');
-                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                // Copy all attributes
+                Array.from(oldScript.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                // Copy content (if it's an inline script)
+                if (oldScript.innerHTML) {
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                }
+                // Replace the old script with the new one to trigger execution
                 oldScript.parentNode.replaceChild(newScript, oldScript);
             });
         }
-        
+
         // Update state but DON'T trigger data load yet, let render finish
         state.view = viewName;
         state.viewLoading = false;
@@ -826,6 +833,19 @@ function renderAdminView() {
         renderDashboardCharts();
     }
 
+    // Lazy load data based on the active admin view
+    const managementViews = ['users', 'shifts', 'positions', 'leaves', 'schedule'];
+    if (managementViews.includes(state.adminView) && !state.managementLoaded) {
+        loadManagementData();
+    } else if (state.adminView === 'attendance' && !state.dailyAttendanceLoaded) {
+        // Daily attendance loads based on dates, but we can trigger a default load
+        // if it hasn't been loaded yet. 
+        // loadDailyAttendance(); 
+    } else if (state.adminView === 'logs' && !state.logsLoaded) {
+        loadActivityLogs();
+    }
+    // Manual attendance and QR codes are loaded on explicit user action (date selection / button click)
+
     // Recap table — top 10 by timeliness (onTime count), sorted descending
     const top10Recap = state.adminRecap
         .slice() // avoid mutating state
@@ -987,11 +1007,16 @@ function renderDashboardCharts() {
         }
     };
 
-    // Use a small timeout to ensure DOM elements are rendered
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure the UI is idle and elements are in DOM
+    requestAnimationFrame(() => {
+        // Secondary check: ensure we are still on the dashboard view
+        if (state.adminView !== 'dashboard') return;
+
         const pieEl = document.querySelector("#chart-pie-attendance");
         const barEl = document.querySelector("#chart-bar-attendance");
         
+        if (!pieEl || !barEl) return;
+
         // Destroy existing charts
         if (_attendancePieChart) {
             _attendancePieChart.destroy();
@@ -1003,16 +1028,14 @@ function renderDashboardCharts() {
         }
         
         // Render new charts
-        if (pieEl && typeof ApexCharts !== 'undefined') {
+        if (typeof ApexCharts !== 'undefined') {
             _attendancePieChart = new ApexCharts(pieEl, pieOptions);
             _attendancePieChart.render();
-        }
-        
-        if (barEl && typeof ApexCharts !== 'undefined') {
+            
             _attendanceBarChart = new ApexCharts(barEl, barOptions);
             _attendanceBarChart.render();
         }
-    }, 100);
+    });
 }
 
 async function renderLeavesView() {
@@ -2739,8 +2762,6 @@ const loadAdminData = async (showPageSpinner = true) => {
             }
 
             setState(updates);
-            // Load shifts and positions immediately for dashboard (needed for user forms)
-            loadManagementData();
         } else {
             const msg = dashRes?.message || 'Failed to load dashboard data.';
             setState({ loading: false, dataLoaded: true, dataError: showPageSpinner ? msg : '', errorMessage: showPageSpinner ? '' : msg });
@@ -2768,6 +2789,25 @@ const loadManagementData = async () => {
         }
     } catch {
         setState({ managementLoading: false, errorMessage: 'Connection error while loading management data.' });
+    }
+};
+
+const loadActivityLogs = async () => {
+    if (state.logsLoaded || state.logsLoading) return;
+    setState({ logsLoading: true });
+    try {
+        const res = await callGas('getActivityLogs', state.token);
+        if (res && res.status === 'success') {
+            setState({
+                adminManagement: { ...state.adminManagement, logs: res.data },
+                logsLoaded: true,
+                logsLoading: false
+            });
+        } else {
+            setState({ logsLoading: false, errorMessage: res?.message || 'Failed to load logs.' });
+        }
+    } catch {
+        setState({ logsLoading: false, errorMessage: 'Connection error while loading logs.' });
     }
 };
 
