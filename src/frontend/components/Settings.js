@@ -23,13 +23,23 @@ export class Settings {
                 scheduleDay: '1',
                 scheduleHour: '9',
                 scheduleMinute: '0'
+            },
+            archiving: {
+                enabled: true,
+                logMonthsToKeep: 3,
+                leavesYearsToKeep: 1,
+                emailLogMaxRows: 100,
+                lastRunAt: null,
+                lastRunResult: null
             }
         };
         this.loading = {
             organizationName: false,
             language: false,
             geofence: false,
-            monthlyEmail: false
+            monthlyEmail: false,
+            archiving: false,
+            maintenanceRun: false
         };
         this.deliveryLogs = [];
         this.pageLoading = true;
@@ -39,9 +49,10 @@ export class Settings {
         this.pageLoading = true;
         this.render();
         try {
-            const [systemRes, geofenceRes] = await Promise.all([
+            const [systemRes, geofenceRes, archivingRes] = await Promise.all([
                 this.callGas('getSystemSettings', this.state.token),
-                this.callGas('getGeofenceSettings', this.state.token)
+                this.callGas('getGeofenceSettings', this.state.token),
+                this.callGas('getArchivingSettings', this.state.token)
             ]);
 
             if (systemRes && systemRes.status === 'success') {
@@ -61,6 +72,19 @@ export class Settings {
                 };
             }
             // If geofence settings fail to load, keep defaults (empty fields, disabled)
+
+            if (archivingRes && archivingRes.status === 'success') {
+                const ad = archivingRes.data;
+                this.currentSettings.archiving = {
+                    enabled:           ad.enabled !== undefined ? ad.enabled : true,
+                    logMonthsToKeep:   ad.logMonthsToKeep   !== null && ad.logMonthsToKeep   !== undefined ? ad.logMonthsToKeep   : 3,
+                    leavesYearsToKeep: ad.leavesYearsToKeep !== null && ad.leavesYearsToKeep !== undefined ? ad.leavesYearsToKeep : 1,
+                    emailLogMaxRows:   ad.emailLogMaxRows    !== null && ad.emailLogMaxRows    !== undefined ? ad.emailLogMaxRows    : 100,
+                    lastRunAt:         ad.lastRunAt     || null,
+                    lastRunResult:     ad.lastRunResult || null
+                };
+            }
+            // If archiving settings fail to load, keep defaults silently
 
             // Load email settings and delivery logs independently so failures don't block the page
             await this.loadEmailSettings();
@@ -419,8 +443,7 @@ export class Settings {
 
                         <!-- Monthly Report Email Settings -->
                         <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
+                            <div class="card">                                <div class="card-header">
                                     <h3 class="card-title">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -567,6 +590,178 @@ export class Settings {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Data Archiving Settings -->
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M3 4m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/>
+                                            <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10"/>
+                                            <path d="M10 12l4 0"/>
+                                        </svg>
+                                        ${t('archivingSettings')}
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Description -->
+                                    <div class="alert alert-info mb-4" role="alert">
+                                        <div class="d-flex">
+                                            <div>
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <circle cx="12" cy="12" r="9"/>
+                                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                                    <polyline points="11 12 12 12 12 16 13 16"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h4 class="alert-title">${t('archivingInfoTitle')}</h4>
+                                                <div class="text-muted">${t('archivingInfoBody')}</div>
+                                                <ul class="mt-2 mb-0 text-muted small">
+                                                    <li>${t('archivingInfoPoint1')}</li>
+                                                    <li>${t('archivingInfoPoint2')}</li>
+                                                    <li>${t('archivingInfoPoint3')}</li>
+                                                    <li>${t('archivingInfoPoint4')}</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <form id="archiving-form">
+                                        <!-- Enable/Disable toggle -->
+                                        <div class="mb-4">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="archiving-enabled"
+                                                       ${this.currentSettings.archiving.enabled ? 'checked' : ''}>
+                                                <span class="form-check-label fw-medium">${t('enableArchiving')}</span>
+                                            </label>
+                                            <div class="form-hint">${t('archivingEnabledHint')}</div>
+                                        </div>
+
+                                        <div id="archiving-config" ${!this.currentSettings.archiving.enabled ? 'style="opacity:0.5;pointer-events:none;"' : ''}>
+                                            <div class="row g-3">
+                                                <!-- Activity log retention -->
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="archive-log-months">
+                                                        ${t('archiveLogMonths')}
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <input type="number"
+                                                               class="form-control"
+                                                               id="archive-log-months"
+                                                               value="${this.escHtml(String(this.currentSettings.archiving.logMonthsToKeep))}"
+                                                               min="1"
+                                                               max="24"
+                                                               placeholder="3">
+                                                        <span class="input-group-text">${t('archiveMonthsUnit')}</span>
+                                                    </div>
+                                                    <div class="form-hint">${t('archiveLogMonthsHint')}</div>
+                                                </div>
+
+                                                <!-- Leaves retention -->
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="archive-leaves-years">
+                                                        ${t('archiveLeavesYears')}
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <input type="number"
+                                                               class="form-control"
+                                                               id="archive-leaves-years"
+                                                               value="${this.escHtml(String(this.currentSettings.archiving.leavesYearsToKeep))}"
+                                                               min="1"
+                                                               max="10"
+                                                               placeholder="1">
+                                                        <span class="input-group-text">${t('archiveYearsUnit')}</span>
+                                                    </div>
+                                                    <div class="form-hint">${t('archiveLeavesYearsHint')}</div>
+                                                </div>
+
+                                                <!-- Email log cap -->
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label" for="archive-email-log-rows">
+                                                        ${t('archiveEmailLogRows')}
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <input type="number"
+                                                               class="form-control"
+                                                               id="archive-email-log-rows"
+                                                               value="${this.escHtml(String(this.currentSettings.archiving.emailLogMaxRows))}"
+                                                               min="10"
+                                                               max="1000"
+                                                               placeholder="100">
+                                                        <span class="input-group-text">${t('archiveRowsUnit')}</span>
+                                                    </div>
+                                                    <div class="form-hint">${t('archiveEmailLogRowsHint')}</div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Schedule note -->
+                                            <div class="mt-3 text-muted small">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <rect x="4" y="5" width="16" height="16" rx="2"/>
+                                                    <line x1="16" y1="3" x2="16" y2="7"/>
+                                                    <line x1="8" y1="3" x2="8" y2="7"/>
+                                                    <line x1="4" y1="11" x2="20" y2="11"/>
+                                                    <line x1="11" y1="15" x2="12" y2="15"/>
+                                                    <line x1="12" y1="15" x2="12" y2="18"/>
+                                                </svg>
+                                                ${t('archivingScheduleNote')}
+                                            </div>
+                                        </div>
+
+                                        <!-- Last run status -->
+                                        ${this.currentSettings.archiving.lastRunAt ? `
+                                        <div class="mt-3 p-3 bg-light rounded">
+                                            <div class="d-flex align-items-center gap-2 text-muted small">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <circle cx="12" cy="12" r="9"/>
+                                                    <polyline points="12 7 12 12 15 15"/>
+                                                </svg>
+                                                <span>${t('archivingLastRun')}: <strong>${this.escHtml(this.currentSettings.archiving.lastRunAt)}</strong></span>
+                                            </div>
+                                        </div>
+                                        ` : ''}
+
+                                        <!-- Action buttons -->
+                                        <div class="d-flex gap-2 mt-4">
+                                            <button type="submit" class="btn btn-primary" ${this.loading.archiving ? 'disabled' : ''}>
+                                                ${this.loading.archiving ? `
+                                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                    ${t('savingEllipsis')}
+                                                ` : `
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                        <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
+                                                        <circle cx="12" cy="14" r="2"/>
+                                                        <polyline points="14,4 14,8 8,8 8,4"/>
+                                                    </svg>
+                                                    ${t('save')}
+                                                `}
+                                            </button>
+                                            <button type="button" id="run-maintenance-btn" class="btn btn-secondary" ${this.loading.maintenanceRun ? 'disabled' : ''}>
+                                                ${this.loading.maintenanceRun ? `
+                                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                    ${t('archivingRunning')}
+                                                ` : `
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                        <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
+                                                        <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
+                                                    </svg>
+                                                    ${t('archivingRunNow')}
+                                                `}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -651,6 +846,29 @@ export class Settings {
         
         // Initialise geofence map if visible
         this.initGeofenceMap();
+
+        // Archiving form
+        const archivingForm = document.getElementById('archiving-form');
+        if (archivingForm) {
+            archivingForm.addEventListener('submit', (e) => this.handleArchivingSave(e));
+        }
+
+        const runMaintenanceBtn = document.getElementById('run-maintenance-btn');
+        if (runMaintenanceBtn) {
+            runMaintenanceBtn.addEventListener('click', () => this.handleRunMaintenanceNow());
+        }
+
+        // Toggle config section opacity when the enable switch changes
+        const archivingEnabledToggle = document.getElementById('archiving-enabled');
+        if (archivingEnabledToggle) {
+            archivingEnabledToggle.addEventListener('change', () => {
+                const configSection = document.getElementById('archiving-config');
+                if (configSection) {
+                    configSection.style.opacity = archivingEnabledToggle.checked ? '1' : '0.5';
+                    configSection.style.pointerEvents = archivingEnabledToggle.checked ? '' : 'none';
+                }
+            });
+        }
     }
 
     initGeofenceMap() {
@@ -1074,6 +1292,79 @@ export class Settings {
         } catch (error) {
             // Silently fail - logs are not critical
             console.error('Failed to load delivery logs:', error);
+        }
+    }
+
+    async handleArchivingSave(e) {
+        e.preventDefault();
+
+        const enabledInput    = document.getElementById('archiving-enabled');
+        const logMonthsInput  = document.getElementById('archive-log-months');
+        const leavesYearsInput = document.getElementById('archive-leaves-years');
+        const emailRowsInput  = document.getElementById('archive-email-log-rows');
+
+        const enabled           = enabledInput     ? enabledInput.checked              : true;
+        const logMonthsToKeep   = logMonthsInput   ? parseInt(logMonthsInput.value,   10) : 3;
+        const leavesYearsToKeep = leavesYearsInput ? parseInt(leavesYearsInput.value, 10) : 1;
+        const emailLogMaxRows   = emailRowsInput   ? parseInt(emailRowsInput.value,   10) : 100;
+
+        if (isNaN(logMonthsToKeep)   || logMonthsToKeep   < 1  || logMonthsToKeep   > 24)  { this.showError(t('archiveLogMonthsError'));   return; }
+        if (isNaN(leavesYearsToKeep) || leavesYearsToKeep < 1  || leavesYearsToKeep > 10)  { this.showError(t('archiveLeavesYearsError')); return; }
+        if (isNaN(emailLogMaxRows)   || emailLogMaxRows   < 10  || emailLogMaxRows   > 1000) { this.showError(t('archiveEmailLogRowsError')); return; }
+
+        this.loading.archiving = true;
+        this.render();
+
+        try {
+            const res = await this.callGas('saveArchivingSettings', this.state.token, {
+                enabled,
+                logMonthsToKeep,
+                leavesYearsToKeep,
+                emailLogMaxRows
+            });
+
+            if (res && res.status === 'success') {
+                this.currentSettings.archiving = {
+                    ...this.currentSettings.archiving,
+                    enabled,
+                    logMonthsToKeep,
+                    leavesYearsToKeep,
+                    emailLogMaxRows
+                };
+                this.showSuccess(t('archivingSettingsSaved'));
+            } else {
+                this.showError(res?.message || t('archivingSettingsSaveFailed'));
+            }
+        } catch (error) {
+            this.showError(t('archivingSettingsSaveFailed'));
+        } finally {
+            this.loading.archiving = false;
+            this.render();
+        }
+    }
+
+    async handleRunMaintenanceNow() {
+        const btn = document.getElementById('run-maintenance-btn');
+        this.loading.maintenanceRun = true;
+        this.render();
+
+        try {
+            const res = await this.callGas('runMaintenanceNow', this.state.token);
+
+            if (res && res.status === 'success') {
+                if (res.data) {
+                    this.currentSettings.archiving.lastRunAt     = res.data.lastRunAt     || null;
+                    this.currentSettings.archiving.lastRunResult = res.data.lastRunResult || null;
+                }
+                this.showSuccess(t('archivingRunSuccess'));
+            } else {
+                this.showError(res?.message || t('archivingRunFailed'));
+            }
+        } catch (error) {
+            this.showError(t('archivingRunFailed'));
+        } finally {
+            this.loading.maintenanceRun = false;
+            this.render();
         }
     }
 
