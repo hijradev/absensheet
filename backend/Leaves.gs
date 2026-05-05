@@ -183,35 +183,53 @@ function createLeaveAttendanceRecords(leaveId, employeeId, leaveType, startDate,
   try {
     const props = getProps();
     
-    // Convert dates to Date objects for iteration
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
     
-    // Iterate through each day of the leave period
-    const current = new Date(start);
-    while (current <= end) {
-      const dateStr = Utilities.formatDate(current, Session.getScriptTimeZone(), "yyyy-MM-dd");
-      const year = current.getFullYear();
-      
-      // Get attendance DB for this year
+    // Process year by year
+    for (let year = startYear; year <= endYear; year++) {
       const attendanceDbId = props["ATTENDANCE_DB_ID_" + year];
-      if (attendanceDbId) {
-        // Check if attendance record already exists for this date
-        const attData = getSheetData(attendanceDbId, "Attendance_Data");
-        let existingRowIndex = -1;
-        
-        for (let i = 1; i < attData.length; i++) {
+      if (!attendanceDbId) continue;
+      
+      // Fetch data ONCE for this year
+      const attData = getSheetData(attendanceDbId, "Attendance_Data");
+      
+      // Map existing records for this employee for O(1) lookup
+      const existingDates = {};
+      for (let i = 1; i < attData.length; i++) {
+        if (String(attData[i][1]) === String(employeeId)) {
           const rowDate = attData[i][0] instanceof Date
             ? Utilities.formatDate(attData[i][0], Session.getScriptTimeZone(), "yyyy-MM-dd")
             : String(attData[i][0]).substring(0, 10);
-          
-          if (rowDate === dateStr && String(attData[i][1]) === String(employeeId)) {
-            existingRowIndex = i + 1;
-            break;
-          }
+          existingDates[rowDate] = { rowIndex: i + 1, rowData: attData[i] };
         }
+      }
+      
+      // Determine the range of days within this specific year
+      const current = new Date(start);
+      if (current.getFullYear() < year) {
+        current.setFullYear(year, 0, 1);
+      }
+      
+      while (current <= end && current.getFullYear() === year) {
+        const dateStr = Utilities.formatDate(current, Session.getScriptTimeZone(), "yyyy-MM-dd");
         
-        if (existingRowIndex === -1) {
+        if (existingDates[dateStr]) {
+          // Update existing record to mark as leave
+          const existingRow = existingDates[dateStr].rowData;
+          const rowIndex = existingDates[dateStr].rowIndex;
+          existingRow[3] = leaveType; // checkInStatus
+          existingRow[12] = "leave";   // source
+          
+          // Ensure row has proper length
+          while (existingRow.length < 13) {
+            existingRow.push("");
+          }
+          
+          updateSheetRow(attendanceDbId, "Attendance_Data", rowIndex, existingRow);
+        } else {
           // Create new attendance record for leave day
           appendSheetData(attendanceDbId, "Attendance_Data", [
             dateStr,
@@ -224,23 +242,11 @@ function createLeaveAttendanceRecords(leaveId, employeeId, leaveType, startDate,
             "", "", "",   // checkOut location
             "leave"       // source
           ]);
-        } else {
-          // Update existing record to mark as leave
-          const existingRow = attData[existingRowIndex - 1];
-          existingRow[3] = leaveType; // checkInStatus
-          existingRow[12] = "leave";   // source
-          
-          // Ensure row has proper length
-          while (existingRow.length < 13) {
-            existingRow.push("");
-          }
-          
-          updateSheetRow(attendanceDbId, "Attendance_Data", existingRowIndex, existingRow);
         }
+        
+        // Move to next day
+        current.setDate(current.getDate() + 1);
       }
-      
-      // Move to next day
-      current.setDate(current.getDate() + 1);
     }
     
     return true;
@@ -401,39 +407,41 @@ function removeLeaveAttendanceRecords(employeeId, startDate, endDate) {
   try {
     const props = getProps();
     
-    // Convert dates to Date objects for iteration
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
     
-    // Iterate through each day of the leave period
-    const current = new Date(start);
-    while (current <= end) {
-      const dateStr = Utilities.formatDate(current, Session.getScriptTimeZone(), "yyyy-MM-dd");
-      const year = current.getFullYear();
-      
-      // Get attendance DB for this year
+    // Process year by year to avoid multiple sheet fetches
+    for (let year = startYear; year <= endYear; year++) {
       const attendanceDbId = props["ATTENDANCE_DB_ID_" + year];
-      if (attendanceDbId) {
-        // Find and delete attendance record for this date
-        const attData = getSheetData(attendanceDbId, "Attendance_Data");
+      if (!attendanceDbId) continue;
+      
+      const ss = SpreadsheetApp.openById(attendanceDbId);
+      const sheet = ss.getSheetByName("Attendance_Data");
+      if (!sheet) continue;
+      
+      // Fetch sheet data ONCE per year
+      const attData = sheet.getDataRange().getValues();
+      const rowsToDelete = [];
+      
+      for (let i = 1; i < attData.length; i++) {
+        const rowDateStr = attData[i][0] instanceof Date
+          ? Utilities.formatDate(attData[i][0], Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : String(attData[i][0]).substring(0, 10);
         
-        for (let i = 1; i < attData.length; i++) {
-          const rowDate = attData[i][0] instanceof Date
-            ? Utilities.formatDate(attData[i][0], Session.getScriptTimeZone(), "yyyy-MM-dd")
-            : String(attData[i][0]).substring(0, 10);
-          
-          if (rowDate === dateStr && 
-              String(attData[i][1]) === String(employeeId) &&
-              String(attData[i][12] || "") === "leave") {
-            
-            deleteSheetRow(attendanceDbId, "Attendance_Data", i + 1);
-            break;
-          }
+        // Find matching leave attendance records
+        if (String(attData[i][1]) === String(employeeId) && 
+            rowDateStr >= startDate && rowDateStr <= endDate &&
+            String(attData[i][12] || "") === "leave") {
+          rowsToDelete.push(i + 1); // 1-indexed for SpreadsheetApp
         }
       }
       
-      // Move to next day
-      current.setDate(current.getDate() + 1);
+      // Delete rows from bottom to top so indices don't shift during deletion
+      for (let j = rowsToDelete.length - 1; j >= 0; j--) {
+        sheet.deleteRow(rowsToDelete[j]);
+      }
     }
     
     return true;

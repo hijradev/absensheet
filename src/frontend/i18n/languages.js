@@ -177,6 +177,7 @@ export const translations = {
             positionManagement: 'Group Management',
             leaveManagement: 'Leave Management',
             scheduleManagement: 'Monthly Schedule',
+            groupSchedule: 'Group Schedule',
             reports: 'Reports',
             activityLogs: 'Activity Logs',
             settings: 'Settings',
@@ -285,6 +286,8 @@ export const translations = {
         actions: 'Actions',
         editUser: 'Edit user',
         deleteUser: 'Delete user',
+        roleEmployee: 'Employee',
+        roleAdmin: 'Admin',
         
         // Shift Management
         addNewShift: 'Add New Shift',
@@ -307,6 +310,10 @@ export const translations = {
         exportCsv: 'Export CSV',
         total: 'Total',
         filterStatus: 'Filter:',
+        filterGroup: 'Group:',
+        filterShift: 'Shift:',
+        allGroups: 'All Groups',
+        allShifts: 'All Shifts',
         allStatus: 'All Status',
         searchEmployee: 'Search employee…',
         employee: 'Employee',
@@ -437,6 +444,8 @@ export const translations = {
         actions: 'Actions',
         editUser: 'Edit user',
         deleteUser: 'Delete user',
+        roleEmployee: 'Employee',
+        roleAdmin: 'Admin',
         searchByIdNameRole: 'Search by ID, name, or role...',
         noUsersMatchFilter: 'No users match the current filter.',
         exportingData: 'Exporting data...',
@@ -468,10 +477,14 @@ export const translations = {
         total: 'Total',
         onTime: 'On Time',
         late: 'Late',
-        absent: 'Absent',
+        absent: 'Leave Early',
         notPresent: 'Not Present',
         leftEarly: 'Left Early',
         filterStatus: 'Filter:',
+        filterGroup: 'Group:',
+        filterShift: 'Shift:',
+        allGroups: 'All Groups',
+        allShifts: 'All Shifts',
         allStatus: 'All Status',
         searchEmployee: 'Search employee…',
         employee: 'Employee',
@@ -553,6 +566,12 @@ export const translations = {
         // Confirm Dialog
         confirmAction: 'Confirm Action',
         areYouSure: 'Are you sure?',
+        deleteLeaveRequest: 'Delete leave request? This cannot be undone.',
+        deleteScheduleEntry: 'Delete schedule entry? This cannot be undone.',
+        deleteUser: 'Delete user "{id}"? This cannot be undone.',
+        deleteShift: 'Delete shift "{id}"? This cannot be undone.',
+        deleteGroup: 'Delete group "{id}"? This cannot be undone.',
+        deleteManualAttendance: 'Delete attendance record for "{name}" on {date}? This cannot be undone.',
         
         // Messages
         loginSuccessful: 'Login successful',
@@ -566,6 +585,11 @@ export const translations = {
         noAttendanceRecordsFound: 'No attendance records found',
         noRecordsMatchCurrentFilter: 'No records match the current filter',
         failedToLoadRecords: 'Failed to load records',
+        successUserDeleted: 'User deleted.',
+        successShiftDeleted: 'Shift deleted.',
+        successGroupDeleted: 'Group deleted.',
+        successAttendanceDeleted: 'Attendance record deleted.',
+        errorDeleteFailed: 'Delete failed.',
         
         // Form Labels
         uploadPhoto: 'Upload Photo',
@@ -762,6 +786,20 @@ export const translations = {
             failedToLoad: 'Failed to load profile.',
             passwordsMatch: 'Passwords match',
             backToDashboard: 'Back to Dashboard'
+        },
+        groupSchedule: {
+            groupSchedule: 'Group Schedule',
+            group: 'Group',
+            filterByGroup: 'Filter by Group',
+            filterByShift: 'Filter by Shift',
+            allGroups: 'All Groups',
+            allShifts: 'All Shifts',
+            legend: 'Legend',
+            loading: 'Loading group schedule...',
+            failedToLoad: 'Failed to load group schedule. Please try again.',
+            connectionError: 'Connection error. Please check your connection and try again.',
+            noGroupsFound: 'No groups found.',
+            noSchedulesForMonth: 'No schedules set for this month.'
         }
     },
     id: {
@@ -921,6 +959,7 @@ export const translations = {
             positionManagement: 'Manajemen Grup',
             leaveManagement: 'Manajemen Cuti',
             scheduleManagement: 'Jadwal Bulanan',
+            groupSchedule: 'Jadwal Grup',
             reports: 'Laporan',
             activityLogs: 'Log Aktivitas',
             settings: 'Pengaturan',
@@ -1029,6 +1068,8 @@ export const translations = {
         actions: 'Aksi',
         editUser: 'Edit pengguna',
         deleteUser: 'Hapus pengguna',
+        roleEmployee: 'Karyawan',
+        roleAdmin: 'Admin',
         
         // Shift Management
         addNewShift: 'Tambah Shift Baru',
@@ -1051,6 +1092,10 @@ export const translations = {
         exportCsv: 'Ekspor CSV',
         total: 'Total',
         filterStatus: 'Filter:',
+        filterGroup: 'Grup:',
+        filterShift: 'Shift:',
+        allGroups: 'Semua Grup',
+        allShifts: 'Semua Shift',
         allStatus: 'Semua Status',
         searchEmployee: 'Cari karyawan…',
         employee: 'Karyawan',
@@ -1181,6 +1226,8 @@ export const translations = {
         actions: 'Aksi',
         editUser: 'Edit pengguna',
         deleteUser: 'Hapus pengguna',
+        roleEmployee: 'Karyawan',
+        roleAdmin: 'Admin',
         searchByIdNameRole: 'Cari berdasarkan ID, nama, atau peran...',
         noUsersMatchFilter: 'Tidak ada pengguna yang cocok dengan filter saat ini.',
         exportingData: 'Mengekspor data...',
@@ -1297,6 +1344,12 @@ export const translations = {
         // Confirm Dialog
         confirmAction: 'Konfirmasi Aksi',
         areYouSure: 'Apakah Anda yakin?',
+        deleteLeaveRequest: 'Hapus pengajuan cuti/izin? Tindakan ini tidak dapat dibatalkan.',
+        deleteScheduleEntry: 'Hapus jadwal? Tindakan ini tidak dapat dibatalkan.',
+        deleteUser: 'Hapus pengguna "{id}"? Tindakan ini tidak dapat dibatalkan.',
+        deleteShift: 'Hapus shift "{id}"? Tindakan ini tidak dapat dibatalkan.',
+        deleteGroup: 'Hapus grup "{id}"? Tindakan ini tidak dapat dibatalkan.',
+        deleteManualAttendance: 'Hapus catatan absensi untuk "{name}" pada {date}? Tindakan ini tidak dapat dibatalkan.',
         
         // Messages
         loginSuccessful: 'Login berhasil',
@@ -1310,6 +1363,11 @@ export const translations = {
         noAttendanceRecordsFound: 'Tidak ada data absensi',
         noRecordsMatchCurrentFilter: 'Tidak ada data yang cocok dengan filter saat ini',
         failedToLoadRecords: 'Gagal memuat data',
+        successUserDeleted: 'Pengguna berhasil dihapus.',
+        successShiftDeleted: 'Shift berhasil dihapus.',
+        successGroupDeleted: 'Grup berhasil dihapus.',
+        successAttendanceDeleted: 'Catatan absensi berhasil dihapus.',
+        errorDeleteFailed: 'Gagal menghapus.',
         
         // Form Labels
         uploadPhoto: 'Unggah Foto',
@@ -1507,6 +1565,20 @@ export const translations = {
         printNoEmployees: 'Tidak ada karyawan untuk dicetak',
         printGenerateFirst: 'Harap buat kode QR terlebih dahulu',
         printUsers: '{count} pengguna',
+        groupSchedule: {
+            groupSchedule: 'Jadwal Grup',
+            group: 'Grup',
+            filterByGroup: 'Filter berdasarkan Grup',
+            filterByShift: 'Filter berdasarkan Shift',
+            allGroups: 'Semua Grup',
+            allShifts: 'Semua Shift',
+            legend: 'Keterangan',
+            loading: 'Memuat jadwal grup...',
+            failedToLoad: 'Gagal memuat jadwal grup. Silakan coba lagi.',
+            connectionError: 'Kesalahan koneksi. Periksa koneksi Anda dan coba lagi.',
+            noGroupsFound: 'Tidak ada grup yang ditemukan.',
+            noSchedulesForMonth: 'Tidak ada jadwal yang ditetapkan untuk bulan ini.'
+        }
     }
 };
 

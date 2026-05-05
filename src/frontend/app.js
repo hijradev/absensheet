@@ -17,6 +17,7 @@ initLanguage();
 // Make t function available globally for components and HTML attributes
 window.absenT = t;
 window.T = t;
+window.absenGetLanguage = getLanguage;
 
 // --- HTML Escaping (XSS prevention) ---
 // All user-supplied data rendered into innerHTML must go through this.
@@ -51,6 +52,7 @@ const state = {
     successMessage: '',
     confirmDialog: { visible: false, message: '', onConfirm: null },
     deleteLoading: false,
+    _confirmBtnSpinning: false,
 
     loginData: { employeeId: '', password: '' },
 
@@ -147,6 +149,7 @@ const state = {
 
     // Schedule Management
     currentScheduleComponent: null,
+    currentGroupScheduleComponent: null,
     currentMyScheduleComponent: null,
 };
 
@@ -243,6 +246,8 @@ const callGas = (functionName, ...args) => {
                     resolve({ status: 'success', data: { id: 'SCH_MOCK', message: 'Schedule entry saved.' } });
                 } else if (functionName === 'deleteScheduleEntry') {
                     resolve({ status: 'success', message: 'Schedule entry deleted.' });
+                } else if (functionName === 'getGroupScheduleSummary') {
+                    resolve({ status: 'success', data: { groups: [], shifts: [], schedules: [], year: args[1] || new Date().getFullYear(), month: args[2] || (new Date().getMonth() + 1) } });
                 } else {
                     resolve({ status: 'success', data: null });
                 }
@@ -388,21 +393,34 @@ function renderConfirmDialog() {
     const overlay = document.getElementById('confirm-dialog-overlay');
     if (!overlay) return;
     overlay.style.display = (state.confirmDialog.visible || state.deleteLoading) ? 'flex' : 'none';
-    const msgEl = document.getElementById('confirm-dialog-message');
+
+    const bodyEl   = document.getElementById('confirm-dialog-body');
+    const footerEl = document.getElementById('confirm-dialog-footer');
+    const loadingEl = document.getElementById('confirm-dialog-loading');
+    const msgEl    = document.getElementById('confirm-dialog-message');
     if (msgEl) msgEl.textContent = state.confirmDialog.message || 'Are you sure?';
 
-    const okBtn = document.getElementById('confirm-dialog-ok');
+    const okBtn    = document.getElementById('confirm-dialog-ok');
     const cancelBtn = document.getElementById('confirm-dialog-cancel');
     const spinnerEl = document.getElementById('confirm-dialog-spinner');
+
+    if (bodyEl)    bodyEl.style.display    = '';
+    if (footerEl)  footerEl.style.display  = '';
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    const isSpinning = !!state._confirmBtnSpinning || state.deleteLoading;
+
     if (okBtn) {
-        okBtn.disabled = state.deleteLoading;
-        if (spinnerEl) spinnerEl.style.display = state.deleteLoading ? 'inline-block' : 'none';
+        okBtn.disabled = isSpinning;
+        if (spinnerEl) spinnerEl.style.display = isSpinning ? 'inline-block' : 'none';
         
-        const defaultText = state.deleteLoading ? (t('common.deleting') || 'Deleting...') : (t('common.delete') || 'Delete');
-        okBtn.querySelector('.confirm-btn-text').textContent = state.confirmDialog.confirmText || defaultText;
-        okBtn.className = 'btn ' + (state.confirmDialog.confirmColor || 'btn-danger');
+        if (!isSpinning) {
+            const defaultText = t('common.delete') || 'Delete';
+            okBtn.querySelector('.confirm-btn-text').textContent = state.confirmDialog.confirmText || defaultText;
+            okBtn.className = 'btn w-100 ' + (state.confirmDialog.confirmColor || 'btn-danger');
+        }
     }
-    if (cancelBtn) cancelBtn.disabled = state.deleteLoading;
+    if (cancelBtn) cancelBtn.disabled = isSpinning;
 }
 
 function renderEmployeeView() {
@@ -851,7 +869,7 @@ function renderAdminView() {
     }
 
     // Sidebar active states + sub-view visibility
-    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile', 'leaves', 'schedule'].forEach(v => {
+    ['dashboard', 'users', 'shifts', 'positions', 'attendance', 'manual-attendance', 'logs', 'reports', 'qrcodes', 'settings', 'profile', 'leaves', 'schedule', 'group-schedule'].forEach(v => {
         const navEl = document.getElementById(`nav-${v}`);
         if (navEl) navEl.classList.toggle('active', state.adminView === v);
         const viewEl = document.getElementById(`admin-view-${v}`);
@@ -868,6 +886,7 @@ function renderAdminView() {
         'positions':         'management-group',
         'leaves':            'management-group',
         'schedule':          'management-group',
+        'group-schedule':    'management-group',
         'reports':           'reports-group',
         'logs':              'reports-group',
     };
@@ -901,7 +920,7 @@ function renderAdminView() {
     }
 
     // Lazy load data based on the active admin view
-    const managementViews = ['users', 'shifts', 'positions', 'leaves', 'schedule'];
+    const managementViews = ['users', 'shifts', 'positions', 'attendance', 'leaves', 'schedule'];
     if (managementViews.includes(state.adminView) && !state.managementLoaded) {
         loadManagementData();
     } else if (state.adminView === 'attendance' && !state.dailyAttendanceLoaded) {
@@ -955,6 +974,9 @@ function renderAdminView() {
     if (state.adminView === 'qrcodes') renderQrCodesView();
     if (state.adminView === 'leaves') renderLeavesView();
     if (state.adminView === 'schedule') renderScheduleView();
+    if (state.adminView === 'group-schedule') renderGroupScheduleView();
+    if (state.adminView === 'settings') loadSettingsView();
+    if (state.adminView === 'profile') loadAdminProfileView();
 }
 
 let _attendancePieChart = null;
@@ -1133,6 +1155,21 @@ async function renderScheduleView() {
         await component.loadData();
     } catch (error) {
         console.error('Failed to load ScheduleManagement component:', error);
+    }
+}
+
+async function renderGroupScheduleView() {
+    try {
+        if (state.currentGroupScheduleComponent) {
+            state.currentGroupScheduleComponent.render();
+            return;
+        }
+        const { GroupSchedule } = await import('./components/GroupSchedule.js');
+        const component = new GroupSchedule(state, setState, callGas);
+        state.currentGroupScheduleComponent = component;
+        await component.loadData();
+    } catch (e) {
+        console.error('Error rendering group schedule view:', e);
     }
 }
 
@@ -1372,19 +1409,20 @@ async function openEmployeeLeaveModal(leaveId = null) {
 }
 
 async function deleteEmployeeLeaveRequest(leaveId) {
-    if (!confirm(t('confirmAction') + '? ' + t('areYouSure'))) return;
-    
-    try {
-        const res = await callGas('deleteLeaveRequest', state.token, leaveId);
-        if (res && res.status === 'success') {
-            loadEmployeeLeaveRequests();
-            setState({ successMessage: res.message });
-        } else {
-            setState({ errorMessage: res?.message || 'Failed to delete leave request.' });
+    showConfirm(t('deleteLeaveRequest') || 'Delete leave request? This cannot be undone.', async () => {
+        setState({ deleteLoading: true });
+        try {
+            const res = await callGas('deleteLeaveRequest', state.token, leaveId);
+            if (res && res.status === 'success') {
+                loadEmployeeLeaveRequests();
+                setState({ deleteLoading: false, successMessage: res.message });
+            } else {
+                setState({ deleteLoading: false, errorMessage: res?.message || 'Failed to delete leave request.' });
+            }
+        } catch {
+            setState({ deleteLoading: false, errorMessage: 'Connection error while deleting leave request.' });
         }
-    } catch {
-        setState({ errorMessage: 'Connection error while deleting leave request.' });
-    }
+    });
 }
 
 async function loadReportData(startDateOrPeriod, endDate) {
@@ -1433,13 +1471,13 @@ function renderUsersTable() {
     
     if (state.managementLoading) {
         table.innerHTML = [1, 2, 3].map(() =>
-            `<tr><td colspan="5"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
+            `<tr><td colspan="6"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
         ).join('');
         return;
     }
 
     if (employees.length === 0) {
-        table.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No users found.</td></tr>';
+        table.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>';
         return;
     }
 
@@ -1467,20 +1505,34 @@ function renderUsersTable() {
     const endIndex = startIndex + state.userPageSize;
     const paginatedUsers = filtered.slice(startIndex, endIndex);
 
+    const positions = (state.adminManagement.positions || []);
+
+    const lang = getLanguage();
+    const roleLabel = (r) => {
+        if (r === 'Employee') return lang === 'id' ? 'Karyawan' : 'Employee';
+        if (r === 'Admin') return 'Admin';
+        return r || '';
+    };
+
     if (paginatedUsers.length === 0) {
-        table.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No users match the current filter.</td></tr>';
+        table.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No users match the current filter.</td></tr>';
     } else {
-        table.innerHTML = paginatedUsers.map(u => `
+        table.innerHTML = paginatedUsers.map(u => {
+            const pos = positions.find(p => p.id === u.jabatan_id);
+            const groupName = pos ? pos.name : (u.jabatan_id || '—');
+            return `
             <tr>
                 <td><img src="${escHtml(u.photo_url || svgAvatar(40))}" class="avatar avatar-sm" alt="" onerror="this.src='${svgAvatar(40)}'"></td>
                 <td>${escHtml(u.id)}</td>
                 <td>${escHtml(u.name)}</td>
-                <td>${escHtml(u.role)}</td>
+                <td>${escHtml(roleLabel(u.role))}</td>
+                <td>${escHtml(groupName)}</td>
                 <td>
                     <button class="btn btn-icon btn-sm btn-ghost-primary js-edit-user" data-id="${escHtml(u.id)}" aria-label="Edit user">${iconEdit()}</button>
                     <button class="btn btn-icon btn-sm btn-ghost-danger js-delete-user" data-id="${escHtml(u.id)}" aria-label="Delete user">${iconDelete()}</button>
                 </td>
-            </tr>`).join('');
+            </tr>`;
+        }).join('');
     }
 
     // Render pagination
@@ -1571,8 +1623,15 @@ function populateRoleFilter() {
     // Keep current value
     const current = state.userRoleFilter;
 
+    // Translate role labels for display while keeping raw value for filtering
+    const roleLabel = (r) => {
+        if (r === 'Employee') return getLanguage() === 'id' ? 'Karyawan' : 'Employee';
+        if (r === 'Admin') return 'Admin';
+        return r;
+    };
+
     select.innerHTML = `<option value="all">${t('all')}</option>` +
-        roles.map(r => `<option value="${escHtml(r)}" ${current === r ? 'selected' : ''}>${escHtml(r)}</option>`).join('');
+        roles.map(r => `<option value="${escHtml(r)}" ${current === r ? 'selected' : ''}>${escHtml(roleLabel(r))}</option>`).join('');
 }
 
 function exportUsersCSV() {
@@ -1900,15 +1959,31 @@ function renderDailyAttendanceView() {
     if (groupSel) {
         const positions = state.adminManagement.positions || [];
         const currentGroup = state.attFilterGroup;
-        groupSel.innerHTML = `<option value="">All Groups</option>` +
+        groupSel.innerHTML = `<option value="">${t('allGroups')}</option>` +
             positions.map(p => `<option value="${escHtml(p.name)}" ${currentGroup === p.name ? 'selected' : ''}>${escHtml(p.name)}</option>`).join('');
     }
     const shiftSel = document.getElementById('att-filter-shift');
     if (shiftSel) {
         const shifts = state.adminManagement.shifts || [];
         const currentShift = state.attFilterShift;
-        shiftSel.innerHTML = `<option value="">All Shifts</option>` +
-            shifts.map(s => `<option value="${escHtml(s.id)}" ${currentShift === s.id ? 'selected' : ''}>${escHtml(formatTimeStr(s.start_time))}–${escHtml(formatTimeStr(s.end_time))}</option>`).join('');
+        
+        // Debug: Log shift data to help identify issues
+        console.log('Shift filter debug:', {
+            shiftsCount: shifts.length,
+            shifts: shifts,
+            currentShift: currentShift,
+            attendanceRecords: state.dailyAttendance.records?.length || 0
+        });
+        
+        if (shifts.length === 0) {
+            shiftSel.innerHTML = `<option value="">${t('allShifts')} (No shifts loaded)</option>`;
+        } else {
+            shiftSel.innerHTML = `<option value="">${t('allShifts')}</option>` +
+                shifts.map(s => {
+                    const displayText = `${escHtml(s.id)} (${escHtml(formatTimeStr(s.start_time))}–${escHtml(formatTimeStr(s.end_time))})`;
+                    return `<option value="${escHtml(s.id)}" ${currentShift === s.id ? 'selected' : ''}>${displayText}</option>`;
+                }).join('');
+        }
     }
 
     // Show/hide Date column based on whether this is a range result
@@ -1963,6 +2038,16 @@ function renderDailyAttendanceView() {
             r.employeeId.toLowerCase().includes(searchTerm) ||
             r.employeeName.toLowerCase().includes(searchTerm) ||
             r.position.toLowerCase().includes(searchTerm);
+        
+        // Debug: Log filter matching for shift filter
+        if (filterShift && !matchShift) {
+            console.log('Shift filter mismatch:', {
+                recordShiftId: r.shiftId,
+                filterShift: filterShift,
+                employeeName: r.employeeName
+            });
+        }
+        
         return matchStatus && matchGroup && matchShift && matchSearch;
     });
 
@@ -1991,8 +2076,13 @@ function renderDailyAttendanceView() {
 
     table.innerHTML = pageSlice.map((r, idx) => {
         const rowNum         = start + idx + 1;
-        const inStatusBadge  = attStatusBadge(r.checkInStatus);
-        const outStatusBadge = r.checkOutTime ? attStatusBadge(r.checkOutStatus) : '<span class="text-muted">—</span>';
+        // Calculate lateness (check-in vs shift start) and earliness (check-out vs shift end)
+        const lateMins  = r.checkInStatus  === 'Terlambat'   ? calcTimeDiffMinutes(r.checkInTime,  r.shiftStart) : null;
+        const earlyMins = r.checkOutStatus === 'Pulang Awal' ? calcTimeDiffMinutes(r.checkOutTime, r.shiftEnd)   : null;
+        const inStatusBadge  = attStatusBadge(r.checkInStatus)  + (lateMins  !== null ? `<div class="text-muted small mt-1">+${formatMinutes(lateMins)}</div>`  : '');
+        const outStatusBadge = r.checkOutTime
+            ? attStatusBadge(r.checkOutStatus) + (earlyMins !== null ? `<div class="text-muted small mt-1">-${formatMinutes(earlyMins)}</div>` : '')
+            : '<span class="text-muted">—</span>';
         const rowClass       = r.checkInStatus === 'Tidak Hadir' ? 'table-light text-muted' : '';
         const dateCell       = isRange ? `<td class="text-muted small">${escHtml(r.date || '')}</td>` : '';
         return `<tr class="${rowClass}">
@@ -2061,6 +2151,30 @@ function renderAttendancePagination(page, totalPages) {
         </ul>`;
 }
 
+/**
+ * Calculate the difference in minutes between two HH:MM time strings.
+ * Returns a positive number of minutes, or null if either time is invalid.
+ */
+function calcTimeDiffMinutes(timeA, timeB) {
+    if (!timeA || !timeB) return null;
+    const [hA, mA] = timeA.split(':').map(Number);
+    const [hB, mB] = timeB.split(':').map(Number);
+    if (isNaN(hA) || isNaN(mA) || isNaN(hB) || isNaN(mB)) return null;
+    return Math.abs((hA * 60 + mA) - (hB * 60 + mB));
+}
+
+/**
+ * Format a minute count as "Xh Ym" or "Ym" string.
+ */
+function formatMinutes(mins) {
+    if (mins === null || mins === undefined) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+}
+
 function attStatusBadge(status) {
     const map = {
         'Tepat Waktu': 'bg-success text-white',
@@ -2077,7 +2191,7 @@ function attStatusBadge(status) {
     const labelMap = {
         'Tepat Waktu': t('onTime'),
         'Terlambat':   t('late'),
-        'Pulang Awal': t('absent'),
+        'Pulang Awal': t('leftEarly'),
         'Tidak Hadir': t('notPresent'),
         'Cuti':        t('annualLeave'),
         'Izin':        t('permission'),
@@ -2582,6 +2696,7 @@ const logout = () => {
         locationStatus: 'disabled',
         currentLeaveComponent: null,
         currentScheduleComponent: null,
+        currentGroupScheduleComponent: null,
         currentMyScheduleComponent: null,
         employeeLeavesLoaded: false,
         managementLoaded: false,
@@ -3051,7 +3166,9 @@ const saveManualAttendance = async () => {
 
 const deleteManualAttendance = async (employeeId, date, employeeName) => {
     showConfirm(
-        `Delete attendance record for "${employeeName}" on ${date}? This cannot be undone.`,
+        (t('deleteManualAttendance') || 'Delete attendance record for "{name}" on {date}? This cannot be undone.')
+            .replace('{name}', employeeName)
+            .replace('{date}', date),
         async () => {
             setState({ deleteLoading: true });
             try {
@@ -3063,10 +3180,10 @@ const deleteManualAttendance = async (employeeId, date, employeeName) => {
                     setState({
                         deleteLoading:    false,
                         manualAttRecords: updated,
-                        successMessage:   'Attendance record deleted.'
+                        successMessage:   t('successAttendanceDeleted') || 'Attendance record deleted.'
                     });
                 } else {
-                    setState({ deleteLoading: false, errorMessage: res?.message || 'Delete failed.' });
+                    setState({ deleteLoading: false, errorMessage: res?.message || (t('errorDeleteFailed') || 'Delete failed.') });
                 }
             } catch {
                 setState({ deleteLoading: false, errorMessage: 'Connection error.' });
@@ -3183,15 +3300,15 @@ const saveForm = async () => {
 };
 
 const deleteUser = async (id) => {
-    showConfirm(`Delete user "${id}"? This cannot be undone.`, async () => {
+    showConfirm((t('deleteUser') || 'Delete user "{id}"? This cannot be undone.').replace('{id}', id), async () => {
     setState({ deleteLoading: true });
     try {
         const res = await callGas('deleteUser', state.token, id);
         if (res && res.status === 'success') {
             const mgmt = { ...state.adminManagement, employees: state.adminManagement.employees.filter(u => u.id !== id) };
-            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: 'User deleted.' });
+            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: t('successUserDeleted') || 'User deleted.' });
         } else {
-            setState({ deleteLoading: false, errorMessage: res?.message || 'Delete failed.' });
+            setState({ deleteLoading: false, errorMessage: res?.message || (t('errorDeleteFailed') || 'Delete failed.') });
         }
     } catch {
         setState({ deleteLoading: false, errorMessage: 'Connection error.' });
@@ -3200,15 +3317,15 @@ const deleteUser = async (id) => {
 };
 
 const deleteShift = async (id) => {
-    showConfirm(`Delete shift "${id}"? This cannot be undone.`, async () => {
+    showConfirm((t('deleteShift') || 'Delete shift "{id}"? This cannot be undone.').replace('{id}', id), async () => {
     setState({ deleteLoading: true });
     try {
         const res = await callGas('deleteShift', state.token, id);
         if (res && res.status === 'success') {
             const mgmt = { ...state.adminManagement, shifts: state.adminManagement.shifts.filter(s => s.id !== id) };
-            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: 'Shift deleted.' });
+            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: t('successShiftDeleted') || 'Shift deleted.' });
         } else {
-            setState({ deleteLoading: false, errorMessage: res?.message || 'Delete failed.' });
+            setState({ deleteLoading: false, errorMessage: res?.message || (t('errorDeleteFailed') || 'Delete failed.') });
         }
     } catch {
         setState({ deleteLoading: false, errorMessage: 'Connection error.' });
@@ -3217,15 +3334,15 @@ const deleteShift = async (id) => {
 };
 
 const deletePosition = async (id) => {
-    showConfirm(`Delete group "${id}"? This cannot be undone.`, async () => {
+    showConfirm((t('deleteGroup') || 'Delete group "{id}"? This cannot be undone.').replace('{id}', id), async () => {
     setState({ deleteLoading: true });
     try {
         const res = await callGas('deletePosition', state.token, id);
         if (res && res.status === 'success') {
             const mgmt = { ...state.adminManagement, positions: state.adminManagement.positions.filter(p => p.id !== id) };
-            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: 'Group deleted.' });
+            setState({ deleteLoading: false, adminManagement: mgmt, successMessage: t('successGroupDeleted') || 'Group deleted.' });
         } else {
-            setState({ deleteLoading: false, errorMessage: res?.message || 'Delete failed.' });
+            setState({ deleteLoading: false, errorMessage: res?.message || (t('errorDeleteFailed') || 'Delete failed.') });
         }
     } catch {
         setState({ deleteLoading: false, errorMessage: 'Connection error.' });
@@ -3804,17 +3921,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize language change listener
     onLanguageChange(() => {
-        // Re-render all views when language changes
-        render();
-        // Re-render any active components that need translation
-        if (state.currentReportComponent) {
-            state.currentReportComponent.render();
-        }
-        if (state.currentSettingsComponent && state.adminView === 'settings') {
-            state.currentSettingsComponent.render();
-        }
-        if (state.currentProfileComponent && (state.adminView === 'profile' || state.view === 'employee')) {
-            state.currentProfileComponent.render();
+        // Force a full re-load of the current view to ensure all components,
+        // strings, and server-side templates are re-rendered in the new language.
+        if (state.view) {
+            loadView(state.view);
+        } else {
+            render();
+            if (typeof updateAllTranslations === 'function') {
+                updateAllTranslations();
+            }
         }
     });
     
@@ -4044,8 +4159,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dialog Actions
         if (target.closest('#confirm-dialog-ok')) {
             const cb = state.confirmDialog.onConfirm;
-            setState({ confirmDialog: { visible: false, message: '', confirmText: '', confirmColor: '', onConfirm: null } });
-            if (cb) cb();
+            if (cb) {
+                (async () => {
+                    await cb();
+                    setState({
+                        confirmDialog: { visible: false, message: '', confirmText: '', confirmColor: '', onConfirm: null }
+                    });
+                })();
+            }
             return;
         }
         if (target.closest('#confirm-dialog-cancel')) {

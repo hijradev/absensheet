@@ -69,14 +69,21 @@
   <!-- Global Confirm Dialog -->
   <div id="confirm-dialog-overlay" class="modal-overlay" style="display: none;">
     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-body">
-          <div class="modal-title" id="confirm-dialog-title" data-i18n="confirmDialog.confirmAction">Confirm Action
+      <div class="modal-content confirm-dialog-content">
+        <!-- Normal state: title + message -->
+        <div id="confirm-dialog-body" class="modal-body">
+          <div class="modal-title" id="confirm-dialog-title" data-i18n="confirmAction">Confirm Action
           </div>
-          <div id="confirm-dialog-message" class="text-muted mt-2" data-i18n="confirmDialog.areYouSure">Are you sure?
+          <div id="confirm-dialog-message" class="text-muted mt-2" data-i18n="areYouSure">Are you sure?
           </div>
         </div>
-        <div class="modal-footer">
+        <!-- Loading state: centered content spinner (same height as body+footer) -->
+        <div id="confirm-dialog-loading" class="confirm-dialog-loading-state" style="display: none;">
+          <div class="spinner-border text-secondary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <div id="confirm-dialog-footer" class="modal-footer">
           <div class="w-100">
             <div class="row">
               <div class="col">

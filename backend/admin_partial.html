@@ -88,6 +88,10 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /><path d="M8 15h2v2h-2z" /><path d="M14 15h2v2h-2z" /></svg>
                     <span data-i18n="adminPanel.scheduleManagement">Monthly Schedule</span>
                 </div>
+                <div class="admin-sidebar-item admin-sidebar-subitem" data-view="group-schedule" id="nav-group-schedule">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /><path d="M8 15h2v2h-2z" /><path d="M14 15h2v2h-2z" /></svg>
+                    <span data-i18n="adminPanel.groupSchedule">Group Schedule</span>
+                </div>
             </div>
 
             <!-- Reports & Logs Group -->
@@ -294,6 +298,7 @@
                                     <th class="col-hide-mobile" data-i18n="userManagement.id">ID</th>
                                     <th data-i18n="userManagement.name">Name</th>
                                     <th data-i18n="userManagement.role">Role</th>
+                                    <th data-i18n="position">Group</th>
                                     <th data-i18n="userManagement.actions">Actions</th>
                                 </tr>
                             </thead>
@@ -367,6 +372,9 @@
                 <!-- Content will be rendered by the ScheduleManagement component -->
             </div>
 
+            <!-- Group Schedule View -->
+            <div id="admin-view-group-schedule" style="display: none;"><!-- Content will be rendered by the GroupSchedule component --></div>
+
             <!-- Daily Attendance View -->
             <div id="admin-view-attendance" style="display: none;">
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -423,7 +431,7 @@
                     <div class="col-6 col-sm-3">
                         <div class="card premium-card text-center border-danger border-opacity-25">
                             <div class="card-body py-3">
-                                <div class="subheader text-danger" data-i18n="dailyAttendance.absent">Absent</div>
+                                <div class="subheader text-danger" data-i18n="dailyAttendance.leftEarly">Leave Early</div>
                                 <div class="h2 mb-0 text-danger" id="att-stat-absent">—</div>
                             </div>
                         </div>
@@ -487,11 +495,10 @@
                                     <th data-i18n="dailyAttendance.inStatus">In Status</th>
                                     <th data-i18n="dailyAttendance.checkOutTime">Check Out</th>
                                     <th data-i18n="dailyAttendance.outStatus">Out Status</th>
-                                    <th data-i18n="dailyAttendance.location">Location</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-attendance-table">
-                                <tr><td colspan="9" class="text-center text-muted py-5">
+                                <tr><td colspan="8" class="text-center text-muted py-5">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler mb-2 d-block mx-auto text-muted" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3l0 4" /><path d="M8 3l0 4" /><path d="M4 11l16 0" /></svg>
                                     <span data-i18n="dailyAttendance.selectDateRange">Select a date range and click Load to view attendance</span>
                                 </td></tr>
@@ -967,40 +974,40 @@
                             <div class="col-md-4">
                                 <div class="user-photo-section">
                                     <img id="user-photo-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='38' r='22' fill='%2394a3b8'/%3E%3Cellipse cx='50' cy='90' rx='36' ry='26' fill='%2394a3b8'/%3E%3C/svg%3E" class="user-photo-preview">
-                                    <label class="form-label text-muted small mb-1">Upload Photo</label>
+                                    <label class="form-label text-muted small mb-1" data-i18n="uploadPhoto">Upload Photo</label>
                                     <input type="file" id="user-photo-input" class="form-control form-control-sm" accept="image/*">
                                 </div>
                             </div>
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    <label class="form-label">Employee ID</label>
+                                    <label class="form-label" data-i18n="employeeId">Employee ID</label>
                                     <input type="text" id="user-id" class="form-control">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Name</label>
+                                    <label class="form-label" data-i18n="name">Name</label>
                                     <input type="text" id="user-name" class="form-control">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Password</label>
+                                    <label class="form-label" data-i18n="password">Password</label>
                                     <input type="password" id="user-password" class="form-control">
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Role</label>
+                                        <label class="form-label" data-i18n="role">Role</label>
                                         <select id="user-role" class="form-select">
-                                            <option value="Employee">Employee</option>
-                                            <option value="Admin">Admin</option>
+                                            <option value="Employee" data-i18n="roleEmployee">Employee</option>
+                                            <option value="Admin" data-i18n="roleAdmin">Admin</option>
                                         </select>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Shift</label>
+                                        <label class="form-label" data-i18n="shift">Shift</label>
                                         <select id="user-shift" class="form-select">
                                             <!-- To be populated by JS -->
                                         </select>
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Group</label>
+                                    <label class="form-label" data-i18n="positionJabatan">Group</label>
                                     <select id="user-position" class="form-select">
                                         <!-- To be populated by JS -->
                                     </select>

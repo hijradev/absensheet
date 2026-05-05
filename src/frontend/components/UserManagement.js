@@ -94,27 +94,34 @@ export class UserManagement {
 
         if (managementLoading || !dataLoaded) {
             table.innerHTML = [1, 2, 3].map(() =>
-                `<tr><td colspan="5"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
+                `<tr><td colspan="6"><div class="placeholder-glow"><span class="placeholder col-12 rounded"></span></div></td></tr>`
             ).join('');
         } else if (!adminManagement.employees || adminManagement.employees.length === 0) {
-            table.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">${this.t('noUsersFound')}</td></tr>`;
+            table.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${this.t('noUsersFound')}</td></tr>`;
         } else {
             const paginatedUsers = this.getPaginatedUsers();
+            const positions = (adminManagement.positions || []);
             
             if (paginatedUsers.length === 0) {
-                table.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">${this.t('noUsersMatchFilter')}</td></tr>`;
+                table.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${this.t('noUsersMatchFilter')}</td></tr>`;
             } else {
-                table.innerHTML = paginatedUsers.map(u => `
+                table.innerHTML = paginatedUsers.map(u => {
+                    const pos = positions.find(p => p.id === u.jabatan_id);
+                    const groupName = pos ? pos.name : (u.jabatan_id || '—');
+                    const roleLabel = this.translateRole(u.role);
+                    return `
                     <tr>
                         <td><img src="${this.escHtml(u.photo_url || this.svgAvatar(40))}" class="avatar avatar-sm" alt="" onerror="this.src='${this.svgAvatar(40)}'"></td>
                         <td>${this.escHtml(u.id)}</td>
                         <td>${this.escHtml(u.name)}</td>
-                        <td>${this.escHtml(u.role)}</td>
+                        <td>${this.escHtml(roleLabel)}</td>
+                        <td>${this.escHtml(groupName)}</td>
                         <td>
                             <button class="btn btn-icon btn-sm btn-ghost-primary js-edit-user" data-id="${this.escHtml(u.id)}" aria-label="Edit user">${this.iconEdit()}</button>
                             <button class="btn btn-icon btn-sm btn-ghost-danger js-delete-user" data-id="${this.escHtml(u.id)}" aria-label="Delete user">${this.iconDelete()}</button>
                         </td>
-                    </tr>`).join('');
+                    </tr>`;
+                }).join('');
             }
             
             this.renderPagination();
@@ -216,7 +223,7 @@ export class UserManagement {
         const roleCount = {};
         
         filteredUsers.forEach(u => {
-            const role = u.role || 'Unknown';
+            const role = this.translateRole(u.role) || 'Unknown';
             roleCount[role] = (roleCount[role] || 0) + 1;
         });
 
@@ -317,15 +324,22 @@ export class UserManagement {
             return;
         }
 
+        const positions = (this.state.adminManagement.positions || []);
+
         // CSV headers
-        const headers = ['ID', 'Name', 'Role'];
+        const headers = ['ID', 'Name', 'Role', 'Group'];
         const csvContent = [
             headers.join(','),
-            ...users.map(u => [
-                this.escapeCSV(u.id),
-                this.escapeCSV(u.name),
-                this.escapeCSV(u.role || '')
-            ].join(','))
+            ...users.map(u => {
+                const pos = positions.find(p => p.id === u.jabatan_id);
+                const groupName = pos ? pos.name : (u.jabatan_id || '');
+                return [
+                    this.escapeCSV(u.id),
+                    this.escapeCSV(u.name),
+                    this.escapeCSV(this.translateRole(u.role) || ''),
+                    this.escapeCSV(groupName)
+                ].join(',');
+            })
         ].join('\n');
 
         // Create download link
@@ -349,6 +363,7 @@ export class UserManagement {
             return;
         }
 
+        const positions = (this.state.adminManagement.positions || []);
         const printWindow = window.open('', '_blank');
         const printContent = `
             <!DOCTYPE html>
@@ -403,16 +418,21 @@ export class UserManagement {
                             <th>${this.t('id')}</th>
                             <th>${this.t('name')}</th>
                             <th>${this.t('role')}</th>
+                            <th>${this.t('position')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${users.map(u => `
+                        ${users.map(u => {
+                            const pos = positions.find(p => p.id === u.jabatan_id);
+                            const groupName = pos ? pos.name : (u.jabatan_id || '—');
+                            return `
                             <tr>
                                 <td>${this.escHtml(u.id)}</td>
                                 <td>${this.escHtml(u.name)}</td>
-                                <td>${this.escHtml(u.role || '')}</td>
-                            </tr>
-                        `).join('')}
+                                <td>${this.escHtml(this.translateRole(u.role) || '')}</td>
+                                <td>${this.escHtml(groupName)}</td>
+                            </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
                 <script>
@@ -435,6 +455,13 @@ export class UserManagement {
             return `"${s.replace(/"/g, '""')}"`;
         }
         return s;
+    }
+
+    translateRole(role) {
+        if (!role) return '';
+        if (role.toLowerCase() === 'employee') return this.t('roleEmployee') || 'Employee';
+        if (role.toLowerCase() === 'admin') return this.t('roleAdmin') || 'Admin';
+        return role;
     }
 
     t(key) {

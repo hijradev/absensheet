@@ -1004,18 +1004,10 @@ export class Settings {
             });
 
             if (res && res.status === 'success') {
-                // Apply language change locally
+                // Apply language change locally. This triggers onLanguageChange in app.js
+                // which will handle the full view reload to ensure all partials are re-translated.
                 setLanguage(selectedLanguage);
                 this.showSuccess(t('languageChanged'));
-                
-                // Re-render the entire page with new language
-                setTimeout(() => {
-                    this.render();
-                    // Update the main app language display
-                    if (window.updateAllTranslations) {
-                        window.updateAllTranslations();
-                    }
-                }, 500);
             } else {
                 this.showError(res?.message || t('failedToChangeLanguage'));
             }

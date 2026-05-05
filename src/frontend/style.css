@@ -373,6 +373,21 @@ td .btn+.btn {
     background: rgba(0, 0, 0, 0.6);
 }
 
+/* Keep the confirm dialog a consistent size across all states */
+.confirm-dialog-content {
+    min-height: 160px;
+    overflow: hidden;
+}
+
+/* Content spinner — fills the same space as body+footer */
+.confirm-dialog-loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    padding: 2rem;
+}
+
 
 /* Daily Attendance View */
 #admin-view-attendance .table-hover tbody tr:hover {
@@ -866,4 +881,9 @@ td .btn+.btn {
     padding: 2px;
     flex: 0 0 calc(100% / 7);
     max-width: calc(100% / 7);
+}
+
+/* Ensure alerts have opaque background */
+.alert {
+    background-color: #ffffff !important;
 }
