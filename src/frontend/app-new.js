@@ -176,18 +176,35 @@ function renderConfirmDialog() {
     const overlay = document.getElementById('confirm-dialog-overlay');
     if (!overlay) return;
     overlay.style.display = (state.confirmDialog.visible || state.deleteLoading) ? 'flex' : 'none';
-    const msgEl = document.getElementById('confirm-dialog-message');
+
+    const bodyEl   = document.getElementById('confirm-dialog-body');
+    const footerEl = document.getElementById('confirm-dialog-footer');
+    const loadingEl = document.getElementById('confirm-dialog-loading');
+    const msgEl    = document.getElementById('confirm-dialog-message');
     if (msgEl) msgEl.textContent = state.confirmDialog.message || 'Are you sure?';
 
-    const okBtn = document.getElementById('confirm-dialog-ok');
+    const okBtn    = document.getElementById('confirm-dialog-ok');
     const cancelBtn = document.getElementById('confirm-dialog-cancel');
     const spinnerEl = document.getElementById('confirm-dialog-spinner');
-    if (okBtn) {
-        okBtn.disabled = state.deleteLoading;
-        if (spinnerEl) spinnerEl.style.display = state.deleteLoading ? 'inline-block' : 'none';
-        okBtn.querySelector('.confirm-btn-text').textContent = state.deleteLoading ? 'Deleting...' : 'Delete';
+
+    if (state.deleteLoading) {
+        if (bodyEl)    bodyEl.style.display    = 'none';
+        if (footerEl)  footerEl.style.display  = 'none';
+        if (loadingEl) loadingEl.style.display = 'flex';
+    } else {
+        if (bodyEl)    bodyEl.style.display    = '';
+        if (footerEl)  footerEl.style.display  = '';
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        if (okBtn) {
+            const btnSpinning = !!state._confirmBtnSpinning;
+            okBtn.disabled = btnSpinning;
+            if (spinnerEl) spinnerEl.style.display = btnSpinning ? 'inline-block' : 'none';
+            okBtn.querySelector('.confirm-btn-text').textContent = state.confirmDialog.confirmText || 'Delete';
+            okBtn.className = 'btn w-100 ' + (state.confirmDialog.confirmColor || 'btn-danger');
+        }
+        if (cancelBtn) cancelBtn.disabled = false;
     }
-    if (cancelBtn) cancelBtn.disabled = state.deleteLoading;
 }
 
 function renderLoginForm() {

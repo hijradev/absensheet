@@ -427,13 +427,23 @@ export class ScheduleManagement {
         if (deleteBtn) {
             if (saved && saved.id) {
                 deleteBtn.classList.remove('d-none');
-                deleteBtn.onclick = async () => {
+                deleteBtn.onclick = () => {
                     const modalEl = document.getElementById('sched-cell-modal');
                     if (modalEl && window.bootstrap) {
                         const modal = window.bootstrap.Modal.getInstance(modalEl);
                         if (modal) modal.hide();
                     }
-                    await this.deleteEntry(saved.id);
+                    this.setState({
+                        confirmDialog: {
+                            visible: true,
+                            message: this.t('deleteScheduleEntry') || `Delete schedule entry? This cannot be undone.`,
+                            onConfirm: async () => {
+                                this.setState({ deleteLoading: true });
+                                await this.deleteEntry(saved.id);
+                                this.setState({ deleteLoading: false });
+                            }
+                        }
+                    });
                 };
             } else {
                 deleteBtn.classList.add('d-none');

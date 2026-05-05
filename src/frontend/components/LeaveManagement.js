@@ -209,7 +209,7 @@ export class LeaveManagement {
                 confirmText: confirmText,
                 confirmColor: confirmColor,
                 onConfirm: async () => {
-                    this.setState({ managementLoading: true });
+                    this.setState({ deleteLoading: true });
                     try {
                         const res = await this.callGas('updateLeaveStatus', this.state.token, leaveId, status, notes);
                         if (res && res.status === 'success') {
@@ -221,17 +221,17 @@ export class LeaveManagement {
                             }
                             this.setState({ 
                                 successMessage: res.message || `Leave request ${status} successfully.`,
-                                managementLoading: false
+                                deleteLoading: false
                             });
                         } else {
                             this.setState({ 
-                                managementLoading: false, 
+                                deleteLoading: false, 
                                 errorMessage: res?.message || `Failed to ${status} leave request.` 
                             });
                         }
                     } catch {
                         this.setState({ 
-                            managementLoading: false, 
+                            deleteLoading: false, 
                             errorMessage: 'Connection error while updating leave status.' 
                         });
                     }
@@ -244,9 +244,9 @@ export class LeaveManagement {
         this.setState({
             confirmDialog: {
                 visible: true,
-                message: this.t('common.areYouSure') || 'Are you sure you want to delete this leave request?',
+                message: this.t('deleteLeaveRequest') || `Delete leave request? This cannot be undone.`,
                 onConfirm: async () => {
-                    this.setState({ managementLoading: true });
+                    this.setState({ deleteLoading: true });
                     try {
                         const res = await this.callGas('deleteLeaveRequest', this.state.token, leaveId);
                         if (res && res.status === 'success') {
@@ -258,17 +258,17 @@ export class LeaveManagement {
                             }
                             this.setState({ 
                                 successMessage: res.message || 'Leave request deleted successfully.',
-                                managementLoading: false
+                                deleteLoading: false
                             });
                         } else {
                             this.setState({ 
-                                managementLoading: false, 
+                                deleteLoading: false, 
                                 errorMessage: res?.message || 'Failed to delete leave request.' 
                             });
                         }
                     } catch {
                         this.setState({ 
-                            managementLoading: false, 
+                            deleteLoading: false, 
                             errorMessage: 'Connection error while deleting leave request.' 
                         });
                     }

@@ -214,6 +214,7 @@ function saveScheduleEntry(token, scheduleData) {
     }
 
     invalidateSchedulesCache();
+    invalidateGroupScheduleCache();
     logActivity(admin.userId, `Schedule ${existingRowIndex !== -1 ? "Updated" : "Created"}: ${employeeId} ${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")} (${type})`);
 
     return successResponse({ id: rowData[0], message: "Schedule saved successfully" });
@@ -282,6 +283,7 @@ function saveBulkSchedule(token, entries) {
     }
 
     invalidateSchedulesCache();
+    invalidateGroupScheduleCache();
     logActivity(admin.userId, `Bulk Schedule Saved: ${saved} entries`);
 
     return successResponse({ saved, message: `${saved} schedule entries saved successfully` });
@@ -313,6 +315,7 @@ function deleteScheduleEntry(token, scheduleId) {
 
     deleteSheetRow(props.MASTER_DB_ID, "Schedules", rowIndex);
     invalidateSchedulesCache();
+    invalidateGroupScheduleCache();
     logActivity(admin.userId, `Schedule Deleted: ${scheduleId}`);
 
     return successResponse({ message: "Schedule entry deleted successfully" });
@@ -408,5 +411,145 @@ function getEmployeeScheduleForDate(employeeId, dateStr) {
     return entry || null;
   } catch (e) {
     return null;
+  }
+}
+
+// ─── Group Schedule ───────────────────────────────────────────────────────────
+
+const CACHE_KEY_GROUP_SCHEDULE = 'group_schedule_';
+
+/**
+ * Invalidate group schedule cache for current, previous, and next month
+ */
+function invalidateGroupScheduleCache() {
+  try {
+    const now = new Date();
+    for (let offset = -1; offset <= 1; offset++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      const cacheKey = CACHE_KEY_GROUP_SCHEDULE + d.getFullYear() + '_' + (d.getMonth() + 1);
+      CacheService.getScriptCache().remove(cacheKey);
+    }
+  } catch (e) { }
+}
+
+/**
+ * Get aggregated group schedule data for a month — admin only
+ *
+ * @param {string} token  - Authentication token
+ * @param {number} year   - Year (e.g., 2024)
+ * @param {number} month  - Month (1-12)
+ * @returns {Object} successResponse with { groups, shifts (with color), schedules (aggregated), year, month }
+ *                   or errorResponse on auth failure / exception
+ */
+function getGroupScheduleSummary(token, year, month) {
+  try {
+    const user = verifyToken(token);
+    if (!user || user.role !== 'Admin') return errorResponse('Unauthorized');
+
+    const props = getProps();
+    ensureSchedulesSheet(props.MASTER_DB_ID);
+
+    // ── Check cache ──────────────────────────────────────────────────────────
+    const cacheKey = CACHE_KEY_GROUP_SCHEDULE + Number(year) + '_' + Number(month);
+    try {
+      const cached = CacheService.getScriptCache().get(cacheKey);
+      if (cached) return successResponse(JSON.parse(cached));
+    } catch (e) { /* cache miss */ }
+
+    // ── Load raw data ────────────────────────────────────────────────────────
+    const schedules = getCachedSchedules(props.MASTER_DB_ID);
+
+    // Shifts — prefer cached helper, fall back to direct sheet read
+    let shifts = [];
+    if (typeof getCachedShifts === 'function') {
+      shifts = getCachedShifts(props.MASTER_DB_ID);
+    } else {
+      const shiftData = getSheetData(props.MASTER_DB_ID, 'Shifts');
+      for (let i = 1; i < shiftData.length; i++) {
+        if (shiftData[i][0]) {
+          shifts.push({
+            id:         String(shiftData[i][0]),
+            start_time: String(shiftData[i][1] || ''),
+            end_time:   String(shiftData[i][2] || '')
+          });
+        }
+      }
+    }
+
+    // Positions (groups) — prefer cached helper, fall back to direct sheet read
+    let positions = [];
+    if (typeof getCachedPositions === 'function') {
+      positions = getCachedPositions(props.MASTER_DB_ID);
+    } else {
+      const posData = getSheetData(props.MASTER_DB_ID, 'Positions');
+      for (let i = 1; i < posData.length; i++) {
+        if (posData[i][0]) {
+          positions.push({
+            id:   String(posData[i][0]),
+            name: String(posData[i][1] || '')
+          });
+        }
+      }
+    }
+
+    // ── Assign colors to shifts ──────────────────────────────────────────────
+    const SHIFT_COLOR_PALETTE = [
+      '#2fb344', '#206bc4', '#f76707', '#d63939', '#7c3aed',
+      '#0891b2', '#db2777', '#65a30d', '#0d9488', '#f59e0b'
+    ];
+
+    const shiftsWithColor = shifts.map(function(s, index) {
+      return {
+        id:         s.id,
+        start_time: s.start_time,
+        end_time:   s.end_time,
+        color:      SHIFT_COLOR_PALETTE[index % SHIFT_COLOR_PALETTE.length]
+      };
+    });
+
+    // ── Aggregate schedules by (groupId, day) ────────────────────────────────
+    const targetYear  = Number(year);
+    const targetMonth = Number(month);
+
+    const lookup = {};
+    for (let i = 0; i < schedules.length; i++) {
+      const s = schedules[i];
+      if (s.year !== targetYear || s.month !== targetMonth) continue;
+      if (s.scheduleType !== 'work') continue;
+      if (!s.shiftId || s.shiftId === '') continue;
+      if (!s.groupId || s.groupId === '') continue;
+
+      const key = s.groupId + '_' + s.day;
+      if (!lookup[key]) {
+        lookup[key] = { groupId: s.groupId, day: s.day, shiftIds: [] };
+      }
+      if (lookup[key].shiftIds.indexOf(s.shiftId) === -1) {
+        lookup[key].shiftIds.push(s.shiftId);
+      }
+    }
+
+    const aggregatedSchedules = Object.keys(lookup).map(function(k) { return lookup[k]; });
+
+    // ── Build response payload ───────────────────────────────────────────────
+    const groups = positions.map(function(p) {
+      return { id: p.id, name: p.name };
+    });
+
+    const data = {
+      groups:    groups,
+      shifts:    shiftsWithColor,
+      schedules: aggregatedSchedules,
+      year:      targetYear,
+      month:     targetMonth
+    };
+
+    // ── Store in cache (30-minute TTL) ───────────────────────────────────────
+    try {
+      CacheService.getScriptCache().put(cacheKey, JSON.stringify(data), 1800);
+    } catch (e) { }
+
+    return successResponse(data);
+  } catch (e) {
+    return errorResponse('Error fetching group schedule: ' + e.message);
   }
 }

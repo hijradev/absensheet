@@ -114,6 +114,16 @@ export class DailyAttendance {
                 r.employeeId.toLowerCase().includes(searchTerm) ||
                 r.employeeName.toLowerCase().includes(searchTerm) ||
                 r.position.toLowerCase().includes(searchTerm);
+            
+            // Debug: Log filter matching for shift filter
+            if (filterShift && !matchShift) {
+                console.log('DailyAttendance shift filter mismatch:', {
+                    recordShiftId: r.shiftId,
+                    filterShift: filterShift,
+                    employeeName: r.employeeName
+                });
+            }
+            
             return matchStatus && matchGroup && matchShift && matchSearch;
         });
 
@@ -134,7 +144,7 @@ export class DailyAttendance {
         }
 
         if (total === 0) {
-            table.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">${this.t('noRecordsMatchCurrentFilter')}</td></tr>`;
+            table.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">${this.t('noRecordsMatchCurrentFilter')}</td></tr>`;
             this.renderPagination(0, 0);
             return;
         }
@@ -142,15 +152,17 @@ export class DailyAttendance {
         table.innerHTML = pageSlice.map((r, idx) => {
             const rowNum = start + idx + 1;
             const isLeave = r.source === 'leave' || ['Cuti','Izin','Sakit','Libur'].includes(r.checkInStatus);
+            // Calculate lateness / leave-earliness duration
+            const lateMins  = (!isLeave && r.checkInStatus  === 'Terlambat')   ? this.calcTimeDiffMinutes(r.checkInTime,  r.shiftStart) : null;
+            const earlyMins = (!isLeave && r.checkOutStatus === 'Pulang Awal') ? this.calcTimeDiffMinutes(r.checkOutTime, r.shiftEnd)   : null;
             const inStatusBadge = isLeave
                 ? this.dayOffBadge(r.checkInStatus)
-                : this.attStatusBadge(r.checkInStatus);
+                : this.attStatusBadge(r.checkInStatus) + (lateMins !== null ? `<div class="text-muted small mt-1">+${this.formatMinutes(lateMins)}</div>` : '');
             const outStatusBadge = isLeave
                 ? this.dayOffBadge(r.checkInStatus)
-                : (r.checkOutTime ? this.attStatusBadge(r.checkOutStatus) : '<span class="text-muted">—</span>');
-            const locationBadge = isLeave
-                ? `<span class="badge bg-secondary-lt text-secondary">—</span>`
-                : this.locationBadge(r, geofenceRadius);
+                : (r.checkOutTime
+                    ? this.attStatusBadge(r.checkOutStatus) + (earlyMins !== null ? `<div class="text-muted small mt-1">-${this.formatMinutes(earlyMins)}</div>` : '')
+                    : '<span class="text-muted">—</span>');
             const rowClass = isLeave ? 'table-info' : (r.checkInStatus === 'Tidak Hadir' ? 'table-light text-muted' : '');
             return `<tr class="${rowClass}">
                 <td class="text-muted">${rowNum}</td>
@@ -167,7 +179,6 @@ export class DailyAttendance {
                 <td>${inStatusBadge}</td>
                 <td>${isLeave ? '<span class="text-muted">—</span>' : (r.checkOutTime ? `<span class="fw-medium">${this.escHtml(r.checkOutTime)}</span>` : '<span class="text-muted">—</span>')}</td>
                 <td>${outStatusBadge}</td>
-                <td>${locationBadge}</td>
             </tr>`;
         }).join('');
 
@@ -258,7 +269,7 @@ export class DailyAttendance {
         const labelMap = {
             'Tepat Waktu': 'Tepat Waktu',
             'Terlambat': 'Terlambat',
-            'Pulang Awal': 'Pulang Awal',
+            'Pulang Awal': t('leftEarly'),
             'Tidak Hadir': 'Tidak Hadir',
             'Cuti': 'Cuti',
             'Izin': 'Izin',
@@ -333,6 +344,30 @@ export class DailyAttendance {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#x27;');
+    }
+
+    /**
+     * Calculate the absolute difference in minutes between two HH:MM time strings.
+     * Returns a positive integer, or null if either value is invalid.
+     */
+    calcTimeDiffMinutes(timeA, timeB) {
+        if (!timeA || !timeB) return null;
+        const [hA, mA] = timeA.split(':').map(Number);
+        const [hB, mB] = timeB.split(':').map(Number);
+        if (isNaN(hA) || isNaN(mA) || isNaN(hB) || isNaN(mB)) return null;
+        return Math.abs((hA * 60 + mA) - (hB * 60 + mB));
+    }
+
+    /**
+     * Format a minute count as "Xh Ym", "Xh", or "Ym".
+     */
+    formatMinutes(mins) {
+        if (mins === null || mins === undefined) return '';
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0 && m > 0) return `${h}h ${m}m`;
+        if (h > 0) return `${h}h`;
+        return `${m}m`;
     }
 
     t(key) {
